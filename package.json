@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "dotenv": "latest",
+    "nodemailer": "^8.0.7"
+  }
+}
