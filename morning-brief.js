@@ -156,22 +156,20 @@ async function fetchHeadsUp() {
     console.log("[1/6] Oura unavailable, using fallback.");
   }
 
-  // Steps 2–5: run sequentially to stay within rate limits
-  console.log("[2/6] Fetching portfolio movers...");
-  const portfolio = await fetchPortfolio().catch(() => "Portfolio data unavailable.");
-  console.log("[2/6] Portfolio done.");
+  // Steps 2–5: two parallel batches
+  console.log("[2/6] Fetching portfolio + news in parallel...");
+  const [portfolio, news] = await Promise.all([
+    fetchPortfolio().catch(() => "Portfolio data unavailable."),
+    fetchNews().catch(() => "News unavailable."),
+  ]);
+  console.log("[2/6] Portfolio + news done.");
 
-  console.log("[3/6] Fetching market & crypto headlines...");
-  const news      = await fetchNews().catch(() => "News unavailable.");
-  console.log("[3/6] News done.");
-
-  console.log("[4/6] Fetching BTC on-chain signal...");
-  const onChain   = await fetchOnChain().catch(() => "On-chain data unavailable.");
-  console.log("[4/6] On-chain done.");
-
-  console.log("[5/6] Fetching 7-day calendar lookahead...");
-  const headsUp   = await fetchHeadsUp().catch(() => "NOTHING");
-  console.log("[5/6] Heads-up done.");
+  console.log("[3/6] Fetching on-chain + calendar in parallel...");
+  const [onChain, headsUp] = await Promise.all([
+    fetchOnChain().catch(() => "On-chain data unavailable."),
+    fetchHeadsUp().catch(() => "NOTHING"),
+  ]);
+  console.log("[3/6] On-chain + calendar done.");
 
   const sleepHours =
     oura.totalSleepMinutes != null
@@ -183,8 +181,8 @@ async function fetchHeadsUp() {
       ? `${oura.hrvPercentChange > 0 ? "+" : ""}${oura.hrvPercentChange}%`
       : "unknown";
 
-  // Step 6: Generate brief
-  console.log("[6/6] Generating brief...");
+  // Step 4: Generate brief
+  console.log("[4/5] Generating brief...");
   const dataBlock = `
 BODY DATA (from Oura Ring):
 - Date: ${oura.reportDay}${oura.isFallback ? " (latest available, today not yet synced)" : ""}
@@ -272,12 +270,12 @@ Fed/CPI: [Date] — [BTC impact in one line]
     messages: [{ role: "user", content: dataBlock }],
   });
 
-  // Step 7: Print
+  // Step 5: Print
   const output = brief.content.find((b) => b.type === "text")?.text ?? "";
   console.log("\n" + output + "\n");
 
-  // Step 8: Send as SMS via Gmail SMTP
-  console.log("[7/7] Sending via email...");
+  // Step 5: Send as SMS via Gmail SMTP
+  console.log("[5/5] Sending via email...");
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -291,7 +289,7 @@ Fed/CPI: [Date] — [BTC impact in one line]
     subject: ".",
     text: output,
   });
-  console.log("[7/7] Sent.");
+  console.log("[5/5] Sent.");
 })().catch((err) => {
   console.error("Error:", err.message);
   process.exit(1);
