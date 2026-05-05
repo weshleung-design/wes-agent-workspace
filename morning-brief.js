@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
-import { config } from "dotenv";
-config({ path: new URL(".env", import.meta.url).pathname }); // no-op if file absent; Railway injects vars directly
-
 import { getOuraData } from "./oura.js";
 import Anthropic from "@anthropic-ai/sdk";
 import nodemailer from "nodemailer";
+
+console.log("ENV CHECK:", !!process.env.ANTHROPIC_API_KEY);
 
 const SEARCH_MODEL = "claude-haiku-4-5-20251001";
 const BRIEF_MODEL  = "claude-sonnet-4-6";
@@ -15,9 +14,6 @@ const SEARCH_TOOL  = [{ type: "web_search_20250305", name: "web_search" }];
 let _client;
 function client() {
   if (!_client) {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY is not set in environment");
-    }
     _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
   return _client;
