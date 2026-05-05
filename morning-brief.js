@@ -270,26 +270,29 @@ Fed/CPI: [Date] — [BTC impact in one line]
     messages: [{ role: "user", content: dataBlock }],
   });
 
-  // Step 5: Print
+  // Step 5: Print + Send
   const output = brief.content.find((b) => b.type === "text")?.text ?? "";
-  console.log("\n" + output + "\n");
+  console.log("\n--- BRIEF ---\n" + output + "\n--- END BRIEF ---\n");
 
-  // Step 5: Send as SMS via Gmail SMTP
   console.log("[5/5] Sending via email...");
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-  await transporter.sendMail({
-    from: process.env.GMAIL_USER,
-    to: process.env.PHONE_SMS_EMAIL,
-    subject: ".",
-    text: output,
-  });
-  console.log("[5/5] Sent.");
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: process.env.PHONE_SMS_EMAIL,
+      subject: ".",
+      text: output,
+    });
+    console.log("[5/5] Sent.");
+  } catch (err) {
+    console.error("[5/5] Email failed (non-fatal):", err.message);
+  }
 })().catch((err) => {
   console.error("Error:", err.message);
   process.exit(1);
