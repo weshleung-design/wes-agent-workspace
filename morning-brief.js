@@ -212,20 +212,7 @@ function briefToHtml(text, prices = {}) {
   let portfolioIntro = null;
   let portfolioRows = [];
 
-  function maColor(val) {
-    if (val == null) return "#6b7280";
-    return val >= 0 ? "#4ade80" : "#f87171";
-  }
-  function maStr(val) {
-    if (val == null) return "—";
-    return (val >= 0 ? "+" : "") + val.toFixed(1) + "%";
-  }
-  function fmtPrice(ticker, p) {
-    if (p == null) return "—";
-    return ticker === "BTC"
-      ? "$" + Math.round(p).toLocaleString()
-      : "$" + p.toFixed(2);
-  }
+  const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
   function flushPortfolio() {
     // ALWAYS reset portfolio state — never leave inPortfolio=true accidentally
@@ -238,41 +225,31 @@ function briefToHtml(text, prices = {}) {
     if (!rows.length) return;
 
     if (intro) {
-      out.push(`<p style="margin:0 0 10px;color:#888;font-size:13px;font-style:italic;">${esc(intro)}</p>`);
+      out.push(`<p style="margin:0 0 12px;color:#9ca3af;font-size:13px;font-style:italic;font-family:${FONT};">${esc(intro)}</p>`);
     }
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
-      // All numeric data comes from prices, not LLM — bulletproof
       const pd       = prices[ticker] ?? {};
       const pct24h   = pd.pct24h ?? null;
-      const v50      = pd.vs50d  ?? null;
-      const v200     = pd.vs200d ?? null;
       const isFlat   = pct24h != null && Math.abs(pct24h) < 0.5;
       const pctColor = pct24h == null ? "#6b7280" : isFlat ? "#6b7280" : pct24h >= 0 ? "#4ade80" : "#f87171";
       const pctStr   = pct24h != null ? (pct24h >= 0 ? "↑" : "↓") + Math.abs(pct24h).toFixed(1) + "%" : "—";
       const autoFlag = pct24h != null && Math.abs(pct24h) >= 3;
       const showFlag = flagged || autoFlag;
-      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#222222";
-      const bold     = showFlag ? "font-weight:bold;" : "";
+      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#1e1e1e";
+      const tickerStyle = showFlag ? "font-weight:700;color:#e0e0e0;" : "color:#e0e0e0;";
       const label    = showFlag ? `⚡ ${ticker}` : ticker;
-      const priceStr = fmtPrice(ticker, pd.price);
-      return `<tr style="${bold}background:${bg};white-space:nowrap;">
-        <td style="padding:6px 10px;color:#e0e0e0;">${esc(label)}</td>
-        <td style="padding:6px 10px;color:#aaa;text-align:right;">${esc(priceStr)}</td>
-        <td style="padding:6px 10px;color:${pctColor};text-align:right;">${esc(pctStr)}</td>
-        <td style="padding:6px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
-        <td style="padding:6px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
-        <td style="padding:6px 14px;color:#aaa;font-size:13px;">${esc(note.trim())}</td>
+      return `<tr style="background:${bg};">
+        <td style="padding:10px 8px;width:15%;${tickerStyle}font-family:${FONT};font-size:14px;">${esc(label)}</td>
+        <td style="padding:10px 8px;width:12%;color:${pctColor};font-weight:600;text-align:right;font-family:${FONT};font-size:14px;">${esc(pctStr)}</td>
+        <td style="padding:10px 8px;width:73%;color:#9ca3af;font-family:${FONT};font-size:14px;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
-    out.push(`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px;">
-    <table style="border-collapse:collapse;font-size:14px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
-      <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
-        <th style="padding:6px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
-        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
-        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">24H</th>
-        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 50D</th>
-        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 200D</th>
-        <th style="padding:6px 14px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
+    out.push(`<div style="margin:4px 0 16px;">
+    <table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;">
+      <thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;">
+        <th style="padding:10px 8px;width:15%;text-align:left;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">TICKER</th>
+        <th style="padding:10px 8px;width:12%;text-align:right;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">24H</th>
+        <th style="padding:10px 8px;width:73%;text-align:left;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">NOTE</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table></div>`);
@@ -286,8 +263,8 @@ function briefToHtml(text, prices = {}) {
     if (DIVIDER.test(trim) && i + 2 < lines.length && DIVIDER.test(lines[i + 2].trim())) {
       flushPortfolio();
       const header = lines[i + 1].trim();
-      out.push(`<hr style="border:none;border-top:1px solid #333333;margin:22px 0 8px;">
-        <p style="margin:0 0 10px;font-weight:bold;font-size:14px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
+      out.push(`<hr style="border:none;border-top:1px solid #2a2a2a;margin:24px 0 10px;">
+        <p style="margin:0 0 10px;font-weight:700;font-size:13px;letter-spacing:0.05em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
       continue;
@@ -335,7 +312,7 @@ function briefToHtml(text, prices = {}) {
     }
 
     // Regular text line
-    out.push(`<p style="margin:2px 0;">${esc(trim)}</p>`);
+    out.push(`<p style="margin:4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;">${esc(trim)}</p>`);
     i++;
   }
 
@@ -345,7 +322,7 @@ function briefToHtml(text, prices = {}) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   </head>
   <body style="margin:0;padding:0;background:#0f0f0f;">
-  <div style="font-family:'Courier New',Courier,monospace;font-size:16px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 24px;max-width:640px;margin:0 auto;">
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;background:#0f0f0f;padding:16px;max-width:600px;margin:0 auto;">
   ${out.join("\n")}
   </div></body></html>`;
 }
