@@ -245,11 +245,11 @@ function briefToHtml(text, prices = {}) {
         <td style="padding:5px 10px;color:${pctColor};text-align:right;">${esc(dir + pct.toFixed(1) + "%")}</td>
         <td style="padding:5px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
         <td style="padding:5px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
-        <td style="padding:5px 14px;color:#aaa;font-size:11px;">${esc(note.trim())}</td>
+        <td style="padding:5px 14px;color:#aaa;font-size:12px;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
     out.push(`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px;">
-    <table style="border-collapse:collapse;font-size:12px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
+    <table style="border-collapse:collapse;font-size:13px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
       <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
         <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
         <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
@@ -274,7 +274,7 @@ function briefToHtml(text, prices = {}) {
       flushPortfolio();
       const header = lines[i + 1].trim();
       out.push(`<hr style="border:none;border-top:1px solid #333333;margin:22px 0 8px;">
-        <p style="margin:0 0 10px;font-weight:bold;font-size:12px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
+        <p style="margin:0 0 10px;font-weight:bold;font-size:13px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
       continue;
@@ -290,7 +290,8 @@ function briefToHtml(text, prices = {}) {
 
     // Ticker line (inside portfolio section)
     if (inPortfolio) {
-      const m = trim.match(TICKER);
+      const cleanTrim = trim.replace(/\*\*/g, "").replace(/\s+/g, " ");
+      const m = cleanTrim.match(TICKER);
       if (m) {
         const [, flagged, ticker, dir, pct, note] = m;
         portfolioRows.push({ flagged: !!flagged, ticker, dir, pct: parseFloat(pct), note });
@@ -330,7 +331,7 @@ function briefToHtml(text, prices = {}) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   </head>
   <body style="margin:0;padding:0;background:#0f0f0f;">
-  <div style="font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 32px;max-width:640px;margin:0 auto;">
+  <div style="font-family:'Courier New',Courier,monospace;font-size:15px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 32px;max-width:640px;margin:0 auto;">
   ${out.join("\n")}
   </div></body></html>`;
 }
@@ -461,7 +462,8 @@ DIP SIGNAL (only if BTC down >5% in 24h):
 HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
 - ALL 9 tickers shown every day — TLDR for every one, no exceptions
-- Flag >3% moves with ⚡ and give an expanded note
+- Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
+- NOTE column: concise news-based TLDR only — write what HAPPENED (catalyst, news, macro driver). Do NOT explain what the MA numbers mean — the data speaks for itself. Do NOT write "See expanded note below." or anything like it.
 - No prices — % changes only
 - Mike's Close: must reference something specific from today's data, never a canned line
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
