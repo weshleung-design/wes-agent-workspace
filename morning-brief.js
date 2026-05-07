@@ -277,7 +277,7 @@ Fed/CPI: [Date] — [BTC impact in one line]
   console.log("[5/5] Sending via Resend...");
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    const today = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric" });
     const { error } = await resend.emails.send({
       from: "onboarding@resend.dev",
       to: "wes.h.leung@gmail.com",
