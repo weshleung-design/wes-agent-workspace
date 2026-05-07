@@ -2,7 +2,7 @@
 
 import { getOuraData } from "./oura.js";
 import Anthropic from "@anthropic-ai/sdk";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 console.log("ENV CHECK:", !!process.env.ANTHROPIC_API_KEY);
 
@@ -274,21 +274,17 @@ Fed/CPI: [Date] — [BTC impact in one line]
   const output = brief.content.find((b) => b.type === "text")?.text ?? "";
   console.log("\n--- BRIEF ---\n" + output + "\n--- END BRIEF ---\n");
 
-  console.log("[5/5] Sending via email...");
+  console.log("[5/5] Sending via Resend...");
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: process.env.PHONE_SMS_EMAIL,
-      subject: ".",
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    const { error } = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: "wes.h.leung@gmail.com",
+      subject: `🌅 GM Wes — ${today}`,
       text: output,
     });
+    if (error) throw new Error(error.message);
     console.log("[5/5] Sent.");
   } catch (err) {
     console.error("[5/5] Email failed (non-fatal):", err.message);
