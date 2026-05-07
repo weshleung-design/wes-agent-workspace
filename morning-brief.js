@@ -123,6 +123,126 @@ async function fetchHeadsUp() {
   );
 }
 
+// ── HTML conversion ───────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function briefToHtml(text) {
+  const DIVIDER = /^━+$/;
+  const TICKER  = /^(⚡\s*)?([A-Z]{2,5})\s+(↑|↓)(\d+\.?\d*)%\s+—\s+(.+)$/;
+
+  const lines = text.split("\n");
+  const out = [];
+  let i = 0;
+  let inPortfolio = false;
+  let portfolioIntro = null;
+  let portfolioRows = [];
+
+  function flushPortfolio() {
+    if (!portfolioRows.length) return;
+    if (portfolioIntro) {
+      out.push(`<p style="margin:0 0 10px;color:#888;font-size:12px;font-style:italic;">${esc(portfolioIntro)}</p>`);
+    }
+    const rowsHtml = portfolioRows.map(({ flagged, ticker, dir, pct, note }, idx) => {
+      const isFlat = pct < 0.5;
+      const pctColor = isFlat ? "#666" : dir === "↑" ? "#4caf50" : "#ef5350";
+      const bg = idx % 2 === 0 ? "#111" : "#0d0d0d";
+      const bold = flagged ? "font-weight:bold;" : "";
+      const label = flagged ? `⚡ ${ticker}` : ticker;
+      return `<tr style="${bold}background:${bg};">
+        <td style="padding:5px 10px;color:#e0e0e0;width:70px;">${esc(label)}</td>
+        <td style="padding:5px 10px;color:${pctColor};text-align:right;width:70px;">${esc(dir + pct.toFixed(1) + "%")}</td>
+        <td style="padding:5px 10px;color:#aaa;">${esc(note.trim())}</td>
+      </tr>`;
+    }).join("");
+    out.push(`<table style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px;">
+      <thead><tr style="border-bottom:1px solid #2a2a2a;">
+        <th style="padding:5px 10px;text-align:left;color:#555;font-weight:normal;">TICKER</th>
+        <th style="padding:5px 10px;text-align:right;color:#555;font-weight:normal;">24H</th>
+        <th style="padding:5px 10px;text-align:left;color:#555;font-weight:normal;">NOTE</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`);
+    portfolioRows = [];
+    portfolioIntro = null;
+    inPortfolio = false;
+  }
+
+  while (i < lines.length) {
+    const line  = lines[i];
+    const trim  = line.trim();
+
+    // Section header: ━━━ / HEADER / ━━━
+    if (DIVIDER.test(trim) && i + 2 < lines.length && DIVIDER.test(lines[i + 2].trim())) {
+      flushPortfolio();
+      const header = lines[i + 1].trim();
+      out.push(`<hr style="border:none;border-top:1px solid #1e1e1e;margin:22px 0 8px;">
+        <p style="margin:0 0 10px;font-weight:bold;font-size:12px;letter-spacing:0.07em;color:#999;">${esc(header)}</p>`);
+      if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
+      i += 3;
+      continue;
+    }
+
+    // Standalone divider
+    if (DIVIDER.test(trim)) {
+      flushPortfolio();
+      out.push(`<hr style="border:none;border-top:1px solid #1e1e1e;margin:16px 0;">`);
+      i++;
+      continue;
+    }
+
+    // Ticker line (inside portfolio section)
+    if (inPortfolio) {
+      const m = trim.match(TICKER);
+      if (m) {
+        const [, flagged, ticker, dir, pct, note] = m;
+        portfolioRows.push({ flagged: !!flagged, ticker, dir, pct: parseFloat(pct), note });
+        i++;
+        continue;
+      }
+      // First non-empty non-ticker line before any rows = intro framing
+      if (!portfolioRows.length && trim) {
+        portfolioIntro = trim;
+        i++;
+        continue;
+      }
+      // Blank line after rows = end of portfolio block
+      if (!trim && portfolioRows.length) {
+        flushPortfolio();
+        out.push("<br>");
+        i++;
+        continue;
+      }
+    }
+
+    // Empty line
+    if (!trim) {
+      out.push("<br>");
+      i++;
+      continue;
+    }
+
+    // Regular text line
+    out.push(`<p style="margin:2px 0;">${esc(trim)}</p>`);
+    i++;
+  }
+
+  flushPortfolio();
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body style="margin:0;padding:0;background:#0a0a0a;">
+  <div style="font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.75;color:#d0d0d0;background:#0a0a0a;padding:28px 32px;max-width:640px;margin:0 auto;">
+  ${out.join("\n")}
+  </div></body></html>`;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 (async () => {
   console.log("[1/5] Fetching Oura data...");
@@ -360,6 +480,7 @@ Fed/CPI: [Date] — [precise BTC impact]
       from: "onboarding@resend.dev",
       to: "wes.h.leung@gmail.com",
       subject: `🌅 GM Wes — ${today}`,
+      html: briefToHtml(output),
       text: output,
     });
     if (error) throw new Error(error.message);
