@@ -61,32 +61,58 @@ async function runSearch(prompt, maxTokens = 500) {
   return "";
 }
 
-// Fetch 24h % changes from free APIs — no web search tokens needed
+// Fetch price, 24h%, 50D MA%, 200D MA% from free APIs
 async function fetchPrices() {
   const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
   const headers = { "User-Agent": "Mozilla/5.0", "Accept": "application/json" };
 
+  function ma(closes, n) {
+    const slice = closes.slice(-n);
+    return slice.length === n ? slice.reduce((a, b) => a + b, 0) / n : null;
+  }
+
   const fetchStock = async (ticker) => {
     const res = await fetch(
-      `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`,
+      `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=200d`,
       { headers }
     );
-    const data = await res.json();
-    const meta = data?.chart?.result?.[0]?.meta;
+    const data  = await res.json();
+    const result = data?.chart?.result?.[0];
+    const meta   = result?.meta;
+    const closes = (result?.indicators?.quote?.[0]?.close ?? []).filter(c => c != null);
     if (!meta?.regularMarketPrice || !meta?.chartPreviousClose) return null;
-    return (meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose * 100;
+    const price  = meta.regularMarketPrice;
+    const pct24h = (price - meta.chartPreviousClose) / meta.chartPreviousClose * 100;
+    const ma50   = ma(closes, 50);
+    const ma200  = ma(closes, 200);
+    return {
+      price,
+      pct24h,
+      vs50d:  ma50  ? (price - ma50)  / ma50  * 100 : null,
+      vs200d: ma200 ? (price - ma200) / ma200 * 100 : null,
+    };
   };
 
-  const [btcRes, ...stockResults] = await Promise.all([
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true", { headers })
-      .then(r => r.json()),
+  const [btcChart, btcSimple, ...stockResults] = await Promise.all([
+    fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=200&interval=daily", { headers }).then(r => r.json()),
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true", { headers }).then(r => r.json()),
     ...STOCKS.map(t => fetchStock(t).catch(() => null)),
   ]);
 
   const prices = {};
-  const btcPct = btcRes?.bitcoin?.usd_24h_change;
-  if (btcPct != null) prices["BTC"] = btcPct;
-  STOCKS.forEach((t, i) => { if (stockResults[i] != null) prices[t] = stockResults[i]; });
+  const btcCloses = (btcChart?.prices ?? []).map(p => p[1]).filter(Boolean);
+  const btcPrice  = btcCloses.at(-1);
+  const ma50      = ma(btcCloses, 50);
+  const ma200     = ma(btcCloses, 200);
+  if (btcPrice) {
+    prices["BTC"] = {
+      price:  Math.round(btcPrice),
+      pct24h: btcSimple?.bitcoin?.usd_24h_change ?? null,
+      vs50d:  ma50  ? (btcPrice - ma50)  / ma50  * 100 : null,
+      vs200d: ma200 ? (btcPrice - ma200) / ma200 * 100 : null,
+    };
+  }
+  STOCKS.forEach((t, i) => { if (stockResults[i]) prices[t] = stockResults[i]; });
 
   return prices;
 }
@@ -172,7 +198,7 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
-function briefToHtml(text) {
+function briefToHtml(text, prices = {}) {
   const DIVIDER = /^━+$/;
   const TICKER  = /^(⚡\s*)?([A-Z]{2,5})\s+(↑|↓)(\d+\.?\d*)%\s+—\s+(.+)$/;
 
@@ -183,31 +209,57 @@ function briefToHtml(text) {
   let portfolioIntro = null;
   let portfolioRows = [];
 
+  function maColor(val) {
+    if (val == null) return "#6b7280";
+    return val >= 0 ? "#4ade80" : "#f87171";
+  }
+  function maStr(val) {
+    if (val == null) return "—";
+    return (val >= 0 ? "+" : "") + val.toFixed(1) + "%";
+  }
+  function fmtPrice(ticker, p) {
+    if (p == null) return "—";
+    return ticker === "BTC"
+      ? "$" + Math.round(p).toLocaleString()
+      : "$" + p.toFixed(2);
+  }
+
   function flushPortfolio() {
     if (!portfolioRows.length) return;
     if (portfolioIntro) {
       out.push(`<p style="margin:0 0 10px;color:#888;font-size:12px;font-style:italic;">${esc(portfolioIntro)}</p>`);
     }
     const rowsHtml = portfolioRows.map(({ flagged, ticker, dir, pct, note }, idx) => {
-      const isFlat = pct < 0.5;
+      const isFlat   = pct < 0.5;
       const pctColor = isFlat ? "#6b7280" : dir === "↑" ? "#4ade80" : "#f87171";
-      const bg = idx % 2 === 0 ? "#1a1a1a" : "#222222";
-      const bold = flagged ? "font-weight:bold;" : "";
-      const label = flagged ? `⚡ ${ticker}` : ticker;
-      return `<tr style="${bold}background:${bg};">
-        <td style="padding:5px 10px;color:#e0e0e0;width:70px;">${esc(label)}</td>
-        <td style="padding:5px 10px;color:${pctColor};text-align:right;width:70px;">${esc(dir + pct.toFixed(1) + "%")}</td>
-        <td style="padding:5px 10px;color:#e0e0e0;">${esc(note.trim())}</td>
+      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#222222";
+      const bold     = flagged ? "font-weight:bold;" : "";
+      const label    = flagged ? `⚡ ${ticker}` : ticker;
+      const pd       = prices[ticker] ?? {};
+      const priceStr = fmtPrice(ticker, pd.price);
+      const v50      = pd.vs50d  ?? null;
+      const v200     = pd.vs200d ?? null;
+      return `<tr style="${bold}background:${bg};white-space:nowrap;">
+        <td style="padding:5px 10px;color:#e0e0e0;">${esc(label)}</td>
+        <td style="padding:5px 10px;color:#aaa;text-align:right;">${esc(priceStr)}</td>
+        <td style="padding:5px 10px;color:${pctColor};text-align:right;">${esc(dir + pct.toFixed(1) + "%")}</td>
+        <td style="padding:5px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
+        <td style="padding:5px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
+        <td style="padding:5px 14px;color:#aaa;font-size:11px;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
-    out.push(`<table style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px;background:#1a1a1a;border:1px solid #333333;">
+    out.push(`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px;">
+    <table style="border-collapse:collapse;font-size:12px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
       <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
         <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
+        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
         <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">24H</th>
-        <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
+        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 50D</th>
+        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 200D</th>
+        <th style="padding:5px 14px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
-    </table>`);
+    </table></div>`);
     portfolioRows = [];
     portfolioIntro = null;
     inPortfolio = false;
@@ -337,15 +389,17 @@ BODY DATA (from Oura Ring):
 - Sleep duration: ${sleepHours}
 - Sleep score: ${oura.sleepScore ?? "unavailable"}/100
 
-PORTFOLIO PRICES (24h % change from live market data — write your own TLDR for each based on today's news and on-chain context):
+PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
   const ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
   if (!prices) return "Price data unavailable — use your knowledge for approximate moves.";
   return ORDER.map(t => {
-    const pct = prices[t];
-    return pct != null
-      ? `${t}: ${pct > 0 ? "+" : ""}${pct.toFixed(2)}%`
-      : `${t}: unavailable`;
+    const d = prices[t];
+    if (!d) return `${t}: unavailable`;
+    const pct = d.pct24h != null ? `${d.pct24h > 0 ? "+" : ""}${d.pct24h.toFixed(2)}%` : "N/A";
+    const v50  = d.vs50d  != null ? `${d.vs50d  > 0 ? "+" : ""}${d.vs50d.toFixed(1)}% vs 50D MA`  : "";
+    const v200 = d.vs200d != null ? `${d.vs200d > 0 ? "+" : ""}${d.vs200d.toFixed(1)}% vs 200D MA` : "";
+    return `${t}: ${pct} | ${[v50, v200].filter(Boolean).join(", ")}`;
   }).join("\n");
 })()}
 
@@ -526,7 +580,7 @@ Fed/CPI: [Date] — [precise BTC impact]
       from: "onboarding@resend.dev",
       to: "wes.h.leung@gmail.com",
       subject: `🌅 GM Wes — ${today}`,
-      html: briefToHtml(output),
+      html: briefToHtml(output, prices),
       text: output,
     });
     if (error) throw new Error(error.message);
