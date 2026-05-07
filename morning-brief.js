@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync, writeFileSync } from "fs";
 import { getOuraData } from "./oura.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
@@ -60,18 +61,34 @@ async function runSearch(prompt, maxTokens = 500) {
   return "";
 }
 
-async function fetchPortfolio() {
-  const tickers = "BTC, MSTR, STRC, IREN, NVDA, AVGO, GOOG, CEG, SCHD";
-  return runSearch(
-    `Search for today's 24-hour price performance for these tickers: ${tickers}.
+// Fetch 24h % changes from free APIs — no web search tokens needed
+async function fetchPrices() {
+  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
+  const headers = { "User-Agent": "Mozilla/5.0", "Accept": "application/json" };
 
-    Return ALL 9 tickers — every single one, no exceptions.
-    For each ticker, one line: TICKER ↑/↓X.X% — one sentence on WHY (macro, sector move, ETF flows, earnings, news catalyst, or "quiet session, no catalyst" if flat).
-    Flag any ticker that moved more than 3% with ⚡ at the start of the line.
+  const fetchStock = async (ticker) => {
+    const res = await fetch(
+      `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`,
+      { headers }
+    );
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta?.regularMarketPrice || !meta?.chartPreviousClose) return null;
+    return (meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose * 100;
+  };
 
-    No preamble, no headers, just the 9 lines.`,
-    600
-  );
+  const [btcRes, ...stockResults] = await Promise.all([
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true", { headers })
+      .then(r => r.json()),
+    ...STOCKS.map(t => fetchStock(t).catch(() => null)),
+  ]);
+
+  const prices = {};
+  const btcPct = btcRes?.bitcoin?.usd_24h_change;
+  if (btcPct != null) prices["BTC"] = btcPct;
+  STOCKS.forEach((t, i) => { if (stockResults[i] != null) prices[t] = stockResults[i]; });
+
+  return prices;
 }
 
 async function fetchNews() {
@@ -105,9 +122,20 @@ async function fetchOnChain() {
   );
 }
 
+const HEADSUP_CACHE = "/tmp/headsup-cache.json";
+const HEADSUP_TTL   = 7 * 24 * 60 * 60 * 1000; // refresh weekly
+
 async function fetchHeadsUp() {
+  try {
+    const cached = JSON.parse(readFileSync(HEADSUP_CACHE, "utf8"));
+    if (Date.now() - cached.ts < HEADSUP_TTL) {
+      console.log("  calendar: cache hit");
+      return cached.data;
+    }
+  } catch {}
+
   const today = new Date().toISOString().slice(0, 10);
-  return runSearch(
+  const result = await runSearch(
     `Today is ${today}. Search for any of these events in the next 7 days:
 
     1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN
@@ -121,6 +149,12 @@ async function fetchHeadsUp() {
     No preamble. Only confirmed upcoming events.`,
     300
   );
+
+  try {
+    writeFileSync(HEADSUP_CACHE, JSON.stringify({ ts: Date.now(), data: result }));
+  } catch {}
+
+  return result;
 }
 
 // ── HTML conversion ───────────────────────────────────────────────────────────
@@ -265,9 +299,9 @@ function briefToHtml(text) {
     console.log("[1/5] Oura unavailable, using fallback.");
   }
 
-  console.log("[2/5] Fetching portfolio + news in parallel...");
-  const [portfolio, news] = await Promise.all([
-    fetchPortfolio().catch(() => "Portfolio data unavailable."),
+  console.log("[2/5] Fetching prices (API) + news (web search) in parallel...");
+  const [prices, news] = await Promise.all([
+    fetchPrices().catch(() => null),
     fetchNews().catch(() => "News unavailable."),
   ]);
   console.log("[2/5] Done.");
@@ -300,8 +334,17 @@ BODY DATA (from Oura Ring):
 - Sleep duration: ${sleepHours}
 - Sleep score: ${oura.sleepScore ?? "unavailable"}/100
 
-PORTFOLIO (24h):
-${portfolio}
+PORTFOLIO PRICES (24h % change from live market data — write your own TLDR for each based on today's news and on-chain context):
+${(() => {
+  const ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
+  if (!prices) return "Price data unavailable — use your knowledge for approximate moves.";
+  return ORDER.map(t => {
+    const pct = prices[t];
+    return pct != null
+      ? `${t}: ${pct > 0 ? "+" : ""}${pct.toFixed(2)}%`
+      : `${t}: unavailable`;
+  }).join("\n");
+})()}
 
 MARKET & CRYPTO HEADLINES (last 24h):
 ${news}
