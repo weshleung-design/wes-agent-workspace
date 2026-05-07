@@ -150,21 +150,21 @@ function briefToHtml(text) {
     }
     const rowsHtml = portfolioRows.map(({ flagged, ticker, dir, pct, note }, idx) => {
       const isFlat = pct < 0.5;
-      const pctColor = isFlat ? "#666" : dir === "↑" ? "#4caf50" : "#ef5350";
-      const bg = idx % 2 === 0 ? "#111" : "#0d0d0d";
+      const pctColor = isFlat ? "#6b7280" : dir === "↑" ? "#4ade80" : "#f87171";
+      const bg = idx % 2 === 0 ? "#1a1a1a" : "#222222";
       const bold = flagged ? "font-weight:bold;" : "";
       const label = flagged ? `⚡ ${ticker}` : ticker;
       return `<tr style="${bold}background:${bg};">
         <td style="padding:5px 10px;color:#e0e0e0;width:70px;">${esc(label)}</td>
         <td style="padding:5px 10px;color:${pctColor};text-align:right;width:70px;">${esc(dir + pct.toFixed(1) + "%")}</td>
-        <td style="padding:5px 10px;color:#aaa;">${esc(note.trim())}</td>
+        <td style="padding:5px 10px;color:#e0e0e0;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
-    out.push(`<table style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px;">
-      <thead><tr style="border-bottom:1px solid #2a2a2a;">
-        <th style="padding:5px 10px;text-align:left;color:#555;font-weight:normal;">TICKER</th>
-        <th style="padding:5px 10px;text-align:right;color:#555;font-weight:normal;">24H</th>
-        <th style="padding:5px 10px;text-align:left;color:#555;font-weight:normal;">NOTE</th>
+    out.push(`<table style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px;background:#1a1a1a;border:1px solid #333333;">
+      <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
+        <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
+        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">24H</th>
+        <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>`);
@@ -181,8 +181,8 @@ function briefToHtml(text) {
     if (DIVIDER.test(trim) && i + 2 < lines.length && DIVIDER.test(lines[i + 2].trim())) {
       flushPortfolio();
       const header = lines[i + 1].trim();
-      out.push(`<hr style="border:none;border-top:1px solid #1e1e1e;margin:22px 0 8px;">
-        <p style="margin:0 0 10px;font-weight:bold;font-size:12px;letter-spacing:0.07em;color:#999;">${esc(header)}</p>`);
+      out.push(`<hr style="border:none;border-top:1px solid #333333;margin:22px 0 8px;">
+        <p style="margin:0 0 10px;font-weight:bold;font-size:12px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
       continue;
@@ -191,7 +191,7 @@ function briefToHtml(text) {
     // Standalone divider
     if (DIVIDER.test(trim)) {
       flushPortfolio();
-      out.push(`<hr style="border:none;border-top:1px solid #1e1e1e;margin:16px 0;">`);
+      out.push(`<hr style="border:none;border-top:1px solid #333333;margin:16px 0;">`);
       i++;
       continue;
     }
@@ -237,8 +237,8 @@ function briefToHtml(text) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   </head>
-  <body style="margin:0;padding:0;background:#0a0a0a;">
-  <div style="font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.75;color:#d0d0d0;background:#0a0a0a;padding:28px 32px;max-width:640px;margin:0 auto;">
+  <body style="margin:0;padding:0;background:#0f0f0f;">
+  <div style="font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 32px;max-width:640px;margin:0 auto;">
   ${out.join("\n")}
   </div></body></html>`;
 }
