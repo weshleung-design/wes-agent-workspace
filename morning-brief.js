@@ -249,27 +249,12 @@ function briefToHtml(text, prices = {}) {
       const bg       = idx % 2 === 0 ? "#1a1a1a" : "#1e1e1e";
       const tickerW  = showFlag ? "font-weight:700;color:#e0e0e0;" : "color:#e0e0e0;";
       const label    = showFlag ? `⚡ ${ticker}` : ticker;
-      const cell     = `padding:10px 8px;font-family:${FONT};font-size:14px;`;
-      return `<tr style="background:${bg};">
-        <td style="${cell}width:16%;${tickerW}">${esc(label)}</td>
-        <td style="${cell}width:12%;color:${pctColor};font-weight:600;text-align:right;">${esc(pctStr)}</td>
-        <td style="${cell}width:12%;color:${maColor(v50)};font-weight:600;text-align:right;">${esc(maStr(v50))}</td>
-        <td style="${cell}width:12%;color:${maColor(v200)};font-weight:600;text-align:right;">${esc(maStr(v200))}</td>
-        <td style="${cell}width:48%;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td>
-      </tr>`;
+      const cell     = `padding:8px 6px;font-family:${FONT};`;
+      const pctCell  = `${cell}width:55px;font-size:12px;font-weight:600;text-align:right;white-space:nowrap;`;
+      return `<tr style="background:${bg};"><td style="${cell}width:55px;font-size:13px;font-weight:600;${tickerW}">${esc(label)}</td><td style="${pctCell}color:${pctColor};">${esc(pctStr)}</td><td style="${pctCell}color:${maColor(v50)};">${esc(maStr(v50))}</td><td style="${pctCell}color:${maColor(v200)};">${esc(maStr(v200))}</td><td style="${cell}font-size:13px;line-height:1.4;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td></tr>`;
     }).join("");
-    const th = `padding:8px 8px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
-    out.push(`<div style="margin:4px 0 16px;">
-    <table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;">
-      <thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;">
-        <th style="${th}width:16%;text-align:left;">TICKER</th>
-        <th style="${th}width:12%;text-align:right;">24H</th>
-        <th style="${th}width:12%;text-align:right;">50D</th>
-        <th style="${th}width:12%;text-align:right;">200D</th>
-        <th style="${th}width:48%;text-align:left;">NOTE</th>
-      </tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table></div>`);
+    const th = `padding:8px 6px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
+    out.push(`<div style="margin:4px 0 16px;"><table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;"><thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;"><th style="${th}width:55px;text-align:left;">TICKER</th><th style="${th}width:55px;text-align:right;">24H</th><th style="${th}width:55px;text-align:right;">50D</th><th style="${th}width:55px;text-align:right;">200D</th><th style="${th}text-align:left;">NOTE</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
   }
 
   while (i < lines.length) {
@@ -335,13 +320,8 @@ function briefToHtml(text, prices = {}) {
 
   flushPortfolio();
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  </head>
-  <body style="margin:0;padding:0;background:#0f0f0f;">
-  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;background:#0f0f0f;padding:16px;max-width:600px;margin:0 auto;">
-  ${out.join("\n")}
-  </div></body></html>`;
+  const body = out.join("").replace(/<!--[\s\S]*?-->/g, "").replace(/\s{2,}/g, " ").replace(/>\s+</g, "><");
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#0f0f0f;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;background:#0f0f0f;padding:16px;max-width:600px;margin:0 auto;">${body}</div></body></html>`;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
