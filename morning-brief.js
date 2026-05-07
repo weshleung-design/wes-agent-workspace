@@ -202,7 +202,8 @@ function esc(s) {
 
 function briefToHtml(text, prices = {}) {
   const DIVIDER = /^━+$/;
-  const TICKER  = /^(⚡\s*)?([A-Z]{2,5})\s+(↑|↓)(\d+\.?\d*)%\s+—\s+(.+)$/;
+  // Permissive: optional ⚡, 2-5 caps, space, any % change format, any dash, note
+  const TICKER_LINE = /^(⚡\s*)?([A-Z]{2,5})\s+[+\-↑↓][\d.]+%\s+[—–\-]\s+(.+)$/;
 
   const lines = text.split("\n");
   const out = [];
@@ -227,44 +228,54 @@ function briefToHtml(text, prices = {}) {
   }
 
   function flushPortfolio() {
-    if (!portfolioRows.length) return;
-    if (portfolioIntro) {
-      out.push(`<p style="margin:0 0 10px;color:#888;font-size:12px;font-style:italic;">${esc(portfolioIntro)}</p>`);
+    // ALWAYS reset portfolio state — never leave inPortfolio=true accidentally
+    inPortfolio = false;
+    const rows = portfolioRows;
+    const intro = portfolioIntro;
+    portfolioRows = [];
+    portfolioIntro = null;
+
+    if (!rows.length) return;
+
+    if (intro) {
+      out.push(`<p style="margin:0 0 10px;color:#888;font-size:13px;font-style:italic;">${esc(intro)}</p>`);
     }
-    const rowsHtml = portfolioRows.map(({ flagged, ticker, dir, pct, note }, idx) => {
-      const isFlat   = pct < 0.5;
-      const pctColor = isFlat ? "#6b7280" : dir === "↑" ? "#4ade80" : "#f87171";
-      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#222222";
-      const bold     = flagged ? "font-weight:bold;" : "";
-      const label    = flagged ? `⚡ ${ticker}` : ticker;
+    const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
+      // All numeric data comes from prices, not LLM — bulletproof
       const pd       = prices[ticker] ?? {};
-      const priceStr = fmtPrice(ticker, pd.price);
+      const pct24h   = pd.pct24h ?? null;
       const v50      = pd.vs50d  ?? null;
       const v200     = pd.vs200d ?? null;
+      const isFlat   = pct24h != null && Math.abs(pct24h) < 0.5;
+      const pctColor = pct24h == null ? "#6b7280" : isFlat ? "#6b7280" : pct24h >= 0 ? "#4ade80" : "#f87171";
+      const pctStr   = pct24h != null ? (pct24h >= 0 ? "↑" : "↓") + Math.abs(pct24h).toFixed(1) + "%" : "—";
+      const autoFlag = pct24h != null && Math.abs(pct24h) >= 3;
+      const showFlag = flagged || autoFlag;
+      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#222222";
+      const bold     = showFlag ? "font-weight:bold;" : "";
+      const label    = showFlag ? `⚡ ${ticker}` : ticker;
+      const priceStr = fmtPrice(ticker, pd.price);
       return `<tr style="${bold}background:${bg};white-space:nowrap;">
-        <td style="padding:5px 10px;color:#e0e0e0;">${esc(label)}</td>
-        <td style="padding:5px 10px;color:#aaa;text-align:right;">${esc(priceStr)}</td>
-        <td style="padding:5px 10px;color:${pctColor};text-align:right;">${esc(dir + pct.toFixed(1) + "%")}</td>
-        <td style="padding:5px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
-        <td style="padding:5px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
-        <td style="padding:5px 14px;color:#aaa;font-size:13px;">${esc(note.trim())}</td>
+        <td style="padding:6px 10px;color:#e0e0e0;">${esc(label)}</td>
+        <td style="padding:6px 10px;color:#aaa;text-align:right;">${esc(priceStr)}</td>
+        <td style="padding:6px 10px;color:${pctColor};text-align:right;">${esc(pctStr)}</td>
+        <td style="padding:6px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
+        <td style="padding:6px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
+        <td style="padding:6px 14px;color:#aaa;font-size:13px;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
     out.push(`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px;">
     <table style="border-collapse:collapse;font-size:14px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
       <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
-        <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
-        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
-        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">24H</th>
-        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 50D</th>
-        <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 200D</th>
-        <th style="padding:5px 14px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
+        <th style="padding:6px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
+        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
+        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">24H</th>
+        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 50D</th>
+        <th style="padding:6px 10px;text-align:right;color:#6b7280;font-weight:normal;">vs 200D</th>
+        <th style="padding:6px 14px;text-align:left;color:#6b7280;font-weight:normal;">NOTE</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table></div>`);
-    portfolioRows = [];
-    portfolioIntro = null;
-    inPortfolio = false;
   }
 
   while (i < lines.length) {
@@ -293,26 +304,27 @@ function briefToHtml(text, prices = {}) {
     // Ticker line (inside portfolio section)
     if (inPortfolio) {
       const cleanTrim = trim.replace(/\*\*/g, "").replace(/\s+/g, " ");
-      const m = cleanTrim.match(TICKER);
+      const m = cleanTrim.match(TICKER_LINE);
       if (m) {
-        const [, flagged, ticker, dir, pct, note] = m;
-        portfolioRows.push({ flagged: !!flagged, ticker, dir, pct: parseFloat(pct), note });
+        const [, flagged, ticker, note] = m;
+        portfolioRows.push({ flagged: !!flagged, ticker, note });
         i++;
         continue;
       }
-      // First non-empty non-ticker line before any rows = intro framing
+      // First non-empty, non-ticker line before rows start = macro intro framing
       if (!portfolioRows.length && trim) {
         portfolioIntro = trim;
         i++;
         continue;
       }
-      // Blank line after rows = end of portfolio block
+      // Blank line after rows = table is done
       if (!trim && portfolioRows.length) {
         flushPortfolio();
         out.push("<br>");
         i++;
         continue;
       }
+      // Non-ticker line after rows already started = fall through to regular rendering
     }
 
     // Empty line
