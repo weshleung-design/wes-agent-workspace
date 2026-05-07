@@ -91,35 +91,41 @@ async function fetchPrices() {
   return prices;
 }
 
-async function fetchNews() {
-  return runSearch(
-    `Search for the 2-3 most important structural headlines from the last 24 hours in:
+// Combined news + on-chain in one search call to halve web search API usage
+async function fetchNewsAndOnChain() {
+  const raw = await runSearch(
+    `Do two searches and return both results clearly separated.
+
+    SEARCH 1 — HEADLINES: Find the 2-3 most important structural headlines from the last 24 hours in:
     - Bitcoin and crypto regulation
     - BTC ETF flows
     - Institutional Bitcoin or crypto adoption
     - AI infrastructure (NVDA, AVGO, GOOG data centers, AI chips)
     - Energy / nuclear (CEG, data center power)
     - Bitcoin mining (IREN, hash rate, miner economics)
+    Ignore: price predictions, analyst targets, celebrity takes, Twitter drama, unrelated altcoin pumps.
+    Format each as one line tagged 🟢 (bullish), 🟡 (watch), or 🔴 (bearish): - [headline] [tag]
 
-    Ignore: price predictions, analyst price targets, celebrity takes, Twitter drama, altcoin pumps unrelated to those sectors.
+    SEARCH 2 — ON-CHAIN: Find the most important on-chain Bitcoin metrics from Glassnode or CryptoQuant in the last 24 hours.
+    Priority: exchange netflows, long-term holder supply, hash rate trend, miner behavior.
+    Return 2-3 lines. Each line: metric name, current value or trend, what it signals.
 
-    Format each as one line. Tag 🟢 (bullish for BTC + AI infra thesis), 🟡 (watch), or 🔴 (bearish).
-    Format: - [headline summary] [tag]
+    Return in this exact format:
+    HEADLINES:
+    [headline lines]
 
-    No preamble.`,
-    500
+    ON-CHAIN:
+    [on-chain lines]
+
+    No other preamble.`,
+    800
   );
-}
 
-async function fetchOnChain() {
-  return runSearch(
-    `Search Glassnode or CryptoQuant for the most important on-chain Bitcoin data published in the last 24 hours.
-    Priority order: exchange netflows, long-term holder supply changes, hash rate trend, miner behavior.
-
-    Return 2-3 lines covering the most signal-rich metrics. Each line: metric name, current value or trend, what it signals.
-    No preamble, no source citations.`,
-    300
-  );
+  // Split on the ON-CHAIN: marker
+  const split = raw.split(/\bON-CHAIN:\s*/i);
+  const news    = split[0].replace(/^HEADLINES:\s*/i, "").trim();
+  const onChain = (split[1] ?? "").trim() || "On-chain data unavailable.";
+  return { news, onChain };
 }
 
 const HEADSUP_CACHE = "/tmp/headsup-cache.json";
@@ -299,18 +305,15 @@ function briefToHtml(text) {
     console.log("[1/5] Oura unavailable, using fallback.");
   }
 
-  console.log("[2/5] Fetching prices (API) + news (web search) in parallel...");
-  const [prices, news] = await Promise.all([
+  console.log("[2/5] Fetching prices (API) + news & on-chain (combined search) in parallel...");
+  const [prices, { news, onChain }] = await Promise.all([
     fetchPrices().catch(() => null),
-    fetchNews().catch(() => "News unavailable."),
+    fetchNewsAndOnChain().catch(() => ({ news: "News unavailable.", onChain: "On-chain data unavailable." })),
   ]);
   console.log("[2/5] Done.");
 
-  console.log("[3/5] Fetching on-chain + calendar in parallel...");
-  const [onChain, headsUp] = await Promise.all([
-    fetchOnChain().catch(() => "On-chain data unavailable."),
-    fetchHeadsUp().catch(() => "NOTHING"),
-  ]);
+  console.log("[3/5] Fetching calendar (cached weekly)...");
+  const headsUp = await fetchHeadsUp().catch(() => "NOTHING");
   console.log("[3/5] Done.");
 
   const sleepHours =
@@ -359,8 +362,8 @@ ${headsUp === "NOTHING" ? "Nothing notable in the next 7 days." : headsUp}
   console.log("[4/5] Generating brief...");
   const brief = await client().messages.create({
     model: BRIEF_MODEL,
-    max_tokens: 2000,
-    system: `You are writing Wes's daily morning brief in the voice of Mike Alfred — Bitcoin conviction investor, calm authority, data-driven, institutional lens. Mike never gets emotional about price. On-chain is gospel. He's a trusted friend who has been up since 5am and already did the work.
+    max_tokens: 1500,
+    system: [{ type: "text", cache_control: { type: "ephemeral" }, text: `You are writing Wes's daily morning brief in the voice of Mike Alfred — Bitcoin conviction investor, calm authority, data-driven, institutional lens. Mike never gets emotional about price. On-chain is gospel. He's a trusted friend who has been up since 5am and already did the work.
 
 WES'S CONTEXT:
 - Works at Anchorage Digital, crypto-native insider
@@ -503,7 +506,7 @@ Fed/CPI: [Date] — [precise BTC impact]
 🔴 [Position/Market] — Watch: [one-line structural risk — NOT just price down]
 [3–5 dots max. Always include BTC. 🟢 = structural tailwind. 🟡 = mixed/waiting. 🔴 = structural headwind.]
 
-— Mike`,
+— Mike` }],
     messages: [{ role: "user", content: dataBlock }],
   });
 
