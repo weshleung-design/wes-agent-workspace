@@ -80,9 +80,11 @@ async function fetchPrices() {
     const result = data?.chart?.result?.[0];
     const meta   = result?.meta;
     const closes = (result?.indicators?.quote?.[0]?.close ?? []).filter(c => c != null);
-    if (!meta?.regularMarketPrice || !meta?.chartPreviousClose) return null;
-    const price  = meta.regularMarketPrice;
-    const pct24h = (price - meta.chartPreviousClose) / meta.chartPreviousClose * 100;
+    if (!meta?.regularMarketPrice) return null;
+    const price    = meta.regularMarketPrice;
+    const prevClose = meta.regularMarketPreviousClose ?? closes.at(-2) ?? null;
+    if (!prevClose) return null;
+    const pct24h = (price - prevClose) / prevClose * 100;
     const ma50   = ma(closes, 50);
     const ma200  = ma(closes, 200);
     return {
@@ -245,11 +247,11 @@ function briefToHtml(text, prices = {}) {
         <td style="padding:5px 10px;color:${pctColor};text-align:right;">${esc(dir + pct.toFixed(1) + "%")}</td>
         <td style="padding:5px 10px;color:${maColor(v50)};text-align:right;">${esc(maStr(v50))}</td>
         <td style="padding:5px 10px;color:${maColor(v200)};text-align:right;">${esc(maStr(v200))}</td>
-        <td style="padding:5px 14px;color:#aaa;font-size:12px;">${esc(note.trim())}</td>
+        <td style="padding:5px 14px;color:#aaa;font-size:13px;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
     out.push(`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px;">
-    <table style="border-collapse:collapse;font-size:13px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
+    <table style="border-collapse:collapse;font-size:14px;background:#1a1a1a;border:1px solid #333333;white-space:nowrap;">
       <thead><tr style="background:#2a2a2a;border-bottom:1px solid #333333;">
         <th style="padding:5px 10px;text-align:left;color:#6b7280;font-weight:normal;">TICKER</th>
         <th style="padding:5px 10px;text-align:right;color:#6b7280;font-weight:normal;">PRICE</th>
@@ -274,7 +276,7 @@ function briefToHtml(text, prices = {}) {
       flushPortfolio();
       const header = lines[i + 1].trim();
       out.push(`<hr style="border:none;border-top:1px solid #333333;margin:22px 0 8px;">
-        <p style="margin:0 0 10px;font-weight:bold;font-size:13px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
+        <p style="margin:0 0 10px;font-weight:bold;font-size:14px;letter-spacing:0.07em;color:#ffffff;">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
       continue;
@@ -331,7 +333,7 @@ function briefToHtml(text, prices = {}) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   </head>
   <body style="margin:0;padding:0;background:#0f0f0f;">
-  <div style="font-family:'Courier New',Courier,monospace;font-size:15px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 32px;max-width:640px;margin:0 auto;">
+  <div style="font-family:'Courier New',Courier,monospace;font-size:16px;line-height:1.75;color:#e0e0e0;background:#0f0f0f;padding:28px 24px;max-width:640px;margin:0 auto;">
   ${out.join("\n")}
   </div></body></html>`;
 }
