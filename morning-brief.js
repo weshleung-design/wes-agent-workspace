@@ -95,21 +95,21 @@ async function fetchPrices() {
     };
   };
 
-  const [btcChart, btcSimple, ...stockResults] = await Promise.all([
+  const [btcChart, ...stockResults] = await Promise.all([
     fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=200&interval=daily", { headers }).then(r => r.json()),
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true", { headers }).then(r => r.json()),
     ...STOCKS.map(t => fetchStock(t).catch(() => null)),
   ]);
 
   const prices = {};
   const btcCloses = (btcChart?.prices ?? []).map(p => p[1]).filter(Boolean);
   const btcPrice  = btcCloses.at(-1);
+  const btcPrev   = btcCloses.at(-2);
   const ma50      = ma(btcCloses, 50);
   const ma200     = ma(btcCloses, 200);
   if (btcPrice) {
     prices["BTC"] = {
       price:  Math.round(btcPrice),
-      pct24h: btcSimple?.bitcoin?.usd_24h_change ?? null,
+      pct24h: btcPrev ? (btcPrice - btcPrev) / btcPrev * 100 : null,
       vs50d:  ma50  ? (btcPrice - ma50)  / ma50  * 100 : null,
       vs200d: ma200 ? (btcPrice - ma200) / ma200 * 100 : null,
     };
@@ -214,6 +214,15 @@ function briefToHtml(text, prices = {}) {
 
   const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
+  function maColor(val) {
+    if (val == null) return "#6b7280";
+    return val >= 0 ? "#4ade80" : "#f87171";
+  }
+  function maStr(val) {
+    if (val == null) return "—";
+    return (val >= 0 ? "+" : "") + val.toFixed(1) + "%";
+  }
+
   function flushPortfolio() {
     // ALWAYS reset portfolio state — never leave inPortfolio=true accidentally
     inPortfolio = false;
@@ -230,26 +239,34 @@ function briefToHtml(text, prices = {}) {
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
       const pd       = prices[ticker] ?? {};
       const pct24h   = pd.pct24h ?? null;
+      const v50      = pd.vs50d  ?? null;
+      const v200     = pd.vs200d ?? null;
       const isFlat   = pct24h != null && Math.abs(pct24h) < 0.5;
       const pctColor = pct24h == null ? "#6b7280" : isFlat ? "#6b7280" : pct24h >= 0 ? "#4ade80" : "#f87171";
       const pctStr   = pct24h != null ? (pct24h >= 0 ? "↑" : "↓") + Math.abs(pct24h).toFixed(1) + "%" : "—";
       const autoFlag = pct24h != null && Math.abs(pct24h) >= 3;
       const showFlag = flagged || autoFlag;
       const bg       = idx % 2 === 0 ? "#1a1a1a" : "#1e1e1e";
-      const tickerStyle = showFlag ? "font-weight:700;color:#e0e0e0;" : "color:#e0e0e0;";
+      const tickerW  = showFlag ? "font-weight:700;color:#e0e0e0;" : "color:#e0e0e0;";
       const label    = showFlag ? `⚡ ${ticker}` : ticker;
+      const cell     = `padding:10px 8px;font-family:${FONT};font-size:14px;`;
       return `<tr style="background:${bg};">
-        <td style="padding:10px 8px;width:15%;${tickerStyle}font-family:${FONT};font-size:14px;">${esc(label)}</td>
-        <td style="padding:10px 8px;width:12%;color:${pctColor};font-weight:600;text-align:right;font-family:${FONT};font-size:14px;">${esc(pctStr)}</td>
-        <td style="padding:10px 8px;width:73%;color:#9ca3af;font-family:${FONT};font-size:14px;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td>
+        <td style="${cell}width:16%;${tickerW}">${esc(label)}</td>
+        <td style="${cell}width:12%;color:${pctColor};font-weight:600;text-align:right;">${esc(pctStr)}</td>
+        <td style="${cell}width:12%;color:${maColor(v50)};font-weight:600;text-align:right;">${esc(maStr(v50))}</td>
+        <td style="${cell}width:12%;color:${maColor(v200)};font-weight:600;text-align:right;">${esc(maStr(v200))}</td>
+        <td style="${cell}width:48%;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td>
       </tr>`;
     }).join("");
+    const th = `padding:8px 8px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
     out.push(`<div style="margin:4px 0 16px;">
     <table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;">
       <thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;">
-        <th style="padding:10px 8px;width:15%;text-align:left;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">TICKER</th>
-        <th style="padding:10px 8px;width:12%;text-align:right;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">24H</th>
-        <th style="padding:10px 8px;width:73%;text-align:left;color:#9ca3af;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;">NOTE</th>
+        <th style="${th}width:16%;text-align:left;">TICKER</th>
+        <th style="${th}width:12%;text-align:right;">24H</th>
+        <th style="${th}width:12%;text-align:right;">50D</th>
+        <th style="${th}width:12%;text-align:right;">200D</th>
+        <th style="${th}width:48%;text-align:left;">NOTE</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table></div>`);
