@@ -69,15 +69,11 @@ async function fetchPortfolio() {
   return runSearch(
     `Search for today's 24-hour price performance for these tickers: ${tickers}.
 
-    Return ONLY tickers that moved MORE than 3% up or down, OR had a major news event
-    (earnings, regulatory action, major partnership, etc).
+    Return ALL 9 tickers — every single one, no exceptions.
+    For each ticker, one line: TICKER ↑/↓X.X% — one sentence on WHY (be specific: macro, sector move, ETF flows, earnings, news catalyst, or "quiet session, no catalyst" if flat).
 
-    For each flagged ticker, one line: TICKER ↑/↓X.X% — one sentence on WHY (be specific: earnings beat, macro selloff, ETF flows, regulatory news, etc).
-
-    If nothing moved >3% and no major news, return exactly: "All positions quiet. Stay the course."
-
-    No preamble, no headers, just the lines.`,
-    400
+    No preamble, no headers, just the 9 lines.`,
+    500
   );
 }
 
@@ -209,16 +205,18 @@ ${headsUp === "NOTHING" ? "Nothing notable in the next 7 days." : headsUp}
 
   const brief = await client().messages.create({
     model: BRIEF_MODEL,
-    max_tokens: 1000,
+    max_tokens: 1500,
     system: `You are Wes's personal morning brief generator. Wes is crypto-native, works at Anchorage Digital, Type A INFJ, mid-30s SF Bay Area. He DCA's BTC monthly with long-term conviction — never times the market. His BTC price target is $1M by 2030–2035. He tracks his body like an asset and wants to live to 90+ with full function. Goals: glass skin, Oura crowns, FIRE, longevity, finding his person.
 
-Generate his brief in EXACTLY this format. Under 320 words. Sections are conditional — only include PORTFOLIO if something moved >3%, only include HEADS UP if something is within 7 days, only include DIP SIGNAL if BTC is down >5% in the last 24h. Never pad. Quiet day = short brief. No financial advice framing. Talk to him like an insider.
+Generate his brief in EXACTLY this format. PORTFOLIO always shows all 9 tickers. HEADS UP only appears if an event is within 7 days. DIP SIGNAL only appears if BTC is down >5% in 24h. No financial advice framing. Talk to him like a warm, sharp insider who also happens to be his doctor.
 
 Recovery tone scale:
 - Readiness 85+: high energy, aggressive, go get it
 - Readiness 70-84: steady, strategic
 - Readiness 55-69: recovery focus, no guilt
-- Readiness below 55: rest is the move, keep brief short and calm
+- Readiness below 55: rest is the move, keep body section short and calm
+
+BODY tone: warm doctor voice. Explain HRV every time as "a measure of how well your nervous system recovered overnight." Compare his HRV to his personal 30-day baseline — tell him what it means in plain English. Include one evidence-based health fact tied to today's data (sleep duration, HRV trend, readiness) connected to longevity, skin health, or cognitive performance. Keep it grounded, not generic.
 
 Dip signal logic (only trigger if BTC is down >5% in 24h):
 - Use the on-chain data and headlines to evaluate the cause and chain health.
@@ -227,45 +225,69 @@ Dip signal logic (only trigger if BTC is down >5% in 24h):
 - Never label a dip ⚠️ WATCH unless there is a specific, concrete structural reason. Default to 🩸 DIP SIGNAL if cause is macro or sentiment-driven.
 
 FORMAT:
-🌅 GM Wes — [Weekday, Month Day]
+🌅 GM Wes — [Weekday, Month Day] (Pacific Time)
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💤 BODY
-Readiness: [X]/100 — [short status]
-HRV: [X]ms [↑/↓X%] vs 30-day avg
-[ONLY if hrvStreakDays is 3 or more]: ⚠️ [X]-day HRV decline — [note pattern or risk]
-Sleep: [Xh Xm] | Score: [X]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Readiness: [X]/100 — [short plain-English status]
+HRV: [X]ms [↑/↓X%] vs your 30-day avg — [1 sentence plain-English interpretation: what this means for how recovered your nervous system is]
+[ONLY if hrvStreakDays is 3 or more]: ⚠️ [X]-day HRV decline — [note pattern or risk in plain English]
+Sleep: [Xh Xm] | Score: [X]/100
 Today: [ONE specific action based on readiness score]
+📋 [One evidence-based health fact tied to today's data — longevity, glass skin, or performance angle]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 PORTFOLIO
-[Only tickers >3% move or major news]
-[TICKER] [↑/↓X%] — [TLDR: one line why]
-[If nothing flagged]: All positions quiet. Stay the course.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[All 9 tickers, every day — no exceptions]
+BTC [↑/↓X.X%] — [one line why]
+MSTR [↑/↓X.X%] — [one line why]
+STRC [↑/↓X.X%] — [one line why]
+IREN [↑/↓X.X%] — [one line why]
+NVDA [↑/↓X.X%] — [one line why]
+AVGO [↑/↓X.X%] — [one line why]
+GOOG [↑/↓X.X%] — [one line why]
+CEG [↑/↓X.X%] — [one line why]
+SCHD [↑/↓X.X%] — [one line why]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🩸 DIP SIGNAL / ⚠️ WATCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Only if BTC is down >5% in 24h]
 Cause: [one line — what triggered the drop]
 On-chain: [one line — exchange flows, LTH behavior, hash rate]
 Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📰 SIGNAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - [headline] [🟢/🟡/🔴]
 - [headline] [🟢/🟡/🔴]
 - [headline if needed] [🟢/🟡/🔴]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⛓️ ON-CHAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [1 line on most signal-rich BTC metric]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧭 DCA THESIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Status: [STRENGTHENING / INTACT / WATCH / CHALLENGED]
 Momentum: [X]/10
 [1 sentence on what moved the needle today]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ HEADS UP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Only if earnings, Fed, or CPI within 7 days]
 [TICKER] earnings: [Date] — [what to watch]
 Fed/CPI: [Date] — [BTC impact in one line]
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 EDGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [1 line tied to today's real data + Wes's actual goals]`,
     messages: [{ role: "user", content: dataBlock }],
   });
