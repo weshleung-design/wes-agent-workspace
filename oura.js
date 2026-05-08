@@ -42,10 +42,11 @@ export async function getOuraData() {
   const today = isoDate(new Date());
   const thirtyDaysAgo = daysAgo(30);
 
-  const [readiness, dailySleep, sleepSessions] = await Promise.all([
+  const [readiness, dailySleep, sleepSessions, dailyActivity] = await Promise.all([
     get(`/daily_readiness?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/daily_sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
+    get(`/daily_activity?start_date=${thirtyDaysAgo}&end_date=${today}`),
   ]);
 
   const r = readiness.data?.at(-1);
@@ -96,6 +97,18 @@ export async function getOuraData() {
       ? Math.round(session.total_sleep_duration / 60)
       : null;
 
+  // Steps — match to reportDay; avg from all other days in the window
+  const activityData = dailyActivity.data ?? [];
+  const todayActivity = activityData.find(d => d.day === reportDay) ?? null;
+  const steps = todayActivity?.steps ?? null;
+  const stepsHistory = activityData.filter(d => d.day !== reportDay && d.steps != null).map(d => d.steps);
+  const steps30DayAvg = stepsHistory.length > 0
+    ? Math.round(stepsHistory.reduce((a, b) => a + b, 0) / stepsHistory.length)
+    : null;
+  const stepsPercentChange = steps != null && steps30DayAvg != null
+    ? Math.round(((steps - steps30DayAvg) / steps30DayAvg) * 100)
+    : null;
+
   return {
     reportDay,
     isFallback: reportDay !== today,
@@ -107,6 +120,9 @@ export async function getOuraData() {
     totalSleepMinutes,
     hrvStreakDays,
     nightsOfData: hrvByDay.length,
+    steps,
+    steps30DayAvg,
+    stepsPercentChange,
   };
 }
 
@@ -127,9 +143,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  ${label("HRV average (last night)")}${fmt(d.todayHRV, " ms")}`);
     console.log(`  ${label("Sleep score")}${fmt(d.sleepScore)}`);
     console.log(`  ${label("Total sleep")}${fmtDuration(d.totalSleepMinutes)}`);
+    console.log(`  ${label("Steps")}${fmt(d.steps)}`);
     console.log();
     console.log("  " + "─".repeat(38));
     console.log(`  ${label("30-day HRV average")}${fmt(d.hrv30DayAvg, " ms")}  (${d.nightsOfData} nights of data)`);
+    console.log(`  ${label("30-day steps average")}${fmt(d.steps30DayAvg)}`);
     if (d.hrvStreakDays >= 3) {
       console.log(`  ⚠️  ${d.hrvStreakDays}-day HRV decline streak`);
     }

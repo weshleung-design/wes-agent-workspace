@@ -374,6 +374,11 @@ function briefToHtml(text, prices = {}) {
       ? `${oura.hrvPercentChange > 0 ? "+" : ""}${oura.hrvPercentChange}%`
       : "unknown";
 
+  const stepsChangeStr =
+    oura.stepsPercentChange != null
+      ? `${oura.stepsPercentChange > 0 ? "+" : ""}${oura.stepsPercentChange}%`
+      : "unavailable";
+
   const dataBlock = `
 BODY DATA (from Oura Ring):
 - Date: ${oura.reportDay}${oura.isFallback ? " (latest available, today not yet synced)" : ""}
@@ -384,6 +389,9 @@ BODY DATA (from Oura Ring):
 - HRV consecutive decline streak: ${oura.hrvStreakDays} days
 - Sleep duration: ${sleepHours}
 - Sleep score: ${oura.sleepScore ?? "unavailable"}/100
+- Steps: ${oura.steps != null ? oura.steps.toLocaleString() : "unavailable"}
+- Steps 30-day avg: ${oura.steps30DayAvg != null ? oura.steps30DayAvg.toLocaleString() : "unavailable"}
+- Steps % vs avg: ${stepsChangeStr}
 
 PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
@@ -495,9 +503,16 @@ HRV: <strong>[X]ms</strong> (<strong>[↑/↓X%]</strong> vs your 30-day avg of 
 Above avg: "HRV measures nervous system recovery — more variation means more resilience. You're above your baseline, body is primed."
 Below avg: "HRV is your body's stress meter in reverse — below baseline means your system is still carrying load from yesterday."
 3+ day decline: "HRV is your early warning system — 3 days declining means protect it before you feel it."]
+[If HRV is "unavailable" but readiness exists]: HRV: Syncing — check the Oura app for today's read. Readiness captured at <strong>[X]/100</strong>.
 
-Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
+[If sleep duration available]: Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
+[If sleep duration is "unknown" but sleep score exists]: Sleep: Duration syncing | Score: <strong>[X]/100</strong>
 [If hrvStreakDays ≥ 3]: ⚠️ [X]-day HRV decline — [brief note]
+
+[If steps data available (not "unavailable")]:
+👟 <strong>[X,XXX] steps</strong> — [Low/Moderate/Active/High] (<strong>[↑/↓X%]</strong> vs avg)
+[1 sentence: mortality/longevity fact tied to that specific count. Rotate each day, never repeat the same stat.]
+[If steps unavailable: skip this line entirely — do not mention steps]
 
 🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
 
