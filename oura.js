@@ -47,11 +47,10 @@ export async function getOuraData() {
   yesterday.setDate(yesterday.getDate() - 1);
   const dateStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
 
-  const [readiness, dailySleep, sleepSessions, activityDay, activityHistory] = await Promise.all([
+  const [readiness, dailySleep, sleepSessions, dailyActivity] = await Promise.all([
     get(`/daily_readiness?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/daily_sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
-    get(`/daily_activity?start_date=${dateStr}&end_date=${dateStr}`),
     get(`/daily_activity?start_date=${thirtyDaysAgo}&end_date=${today}`),
   ]);
 
@@ -103,11 +102,12 @@ export async function getOuraData() {
       ? Math.round(session.total_sleep_duration / 60)
       : null;
 
-  // Steps — targeted single-day query for accuracy, separate history query for avg
-  console.log("ACTIVITY DATE:", dateStr, "STEPS:", activityDay?.data?.[0]?.steps);
+  // Steps — find yesterday (PT) within the 30-day window
+  const activityData = dailyActivity.data ?? [];
+  const yesterdayEntry = activityData.find(d => d.day === dateStr) ?? null;
+  console.log("ACTIVITY DATE:", dateStr, "STEPS:", yesterdayEntry?.steps);
 
-  const steps = activityDay?.data?.[0]?.steps ?? null;
-  const activityData = activityHistory.data ?? [];
+  const steps = yesterdayEntry?.steps ?? null;
   const stepsHistory = activityData.filter(d => d.day !== dateStr && d.steps != null).map(d => d.steps);
   const steps30DayAvg = stepsHistory.length > 0
     ? Math.round(stepsHistory.reduce((a, b) => a + b, 0) / stepsHistory.length)
