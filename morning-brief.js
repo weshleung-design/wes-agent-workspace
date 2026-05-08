@@ -63,7 +63,7 @@ async function runSearch(prompt, maxTokens = 500) {
 
 // Fetch price, 24h%, 50D MA%, 200D MA% from free APIs
 async function fetchPrices() {
-  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
+  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD", "COIN"];
   const headers = { "User-Agent": "Mozilla/5.0", "Accept": "application/json" };
 
   function ma(closes, n) {
@@ -172,7 +172,7 @@ async function fetchHeadsUp() {
   const result = await runSearch(
     `Today is ${today}. Search for any of these events in the next 7 days:
 
-    1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN
+    1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN, COIN
        If found: "[TICKER] earnings: [Date] — [specific metric to watch]"
 
     2. Federal Reserve decision dates or CPI print dates
@@ -398,7 +398,7 @@ ${hasOuraData
 
 PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
-  const ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
+  const ORDER = ["BTC", "MSTR", "STRC", "COIN", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
   if (!prices) return "Price data unavailable — use your knowledge for approximate moves.";
   return ORDER.map(t => {
     const d = prices[t];
@@ -430,7 +430,8 @@ WES'S CONTEXT:
 - Works at Anchorage Digital, crypto-native insider
 - BTC price target: $1M by 2030–2035
 - Manual DCA throughout the month on dips
-- Portfolio: BTC, MSTR, STRC, IREN, NVDA, AVGO, GOOG, CEG, SCHD
+- Portfolio: BTC, MSTR, STRC, COIN, IREN, NVDA, AVGO, GOOG, CEG, SCHD
+- COIN context: Wes worked at Coinbase and holds significant shares — treat as a core conviction position, not a trade
 - Thesis breaks on: MSTR collapse, major exchange hack, government ban, AI bubble pop
 - Goals: glass skin, Oura crowns, FIRE, longevity to 90+, finding his person
 - Talk to him like an insider, never disclaim
@@ -467,7 +468,7 @@ DIP SIGNAL (only if BTC down >5% in 24h):
 
 HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
-- ALL 9 tickers shown every day — TLDR for every one, no exceptions
+- ALL 10 tickers shown every day — TLDR for every one, no exceptions
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
 - NOTE column: 2 sentences max — write what HAPPENED (catalyst, news, macro driver). No MA explanations. No expanded narrative. No "See expanded note below." Never exceed 2 sentences.
 - No prices — % changes only
@@ -544,6 +545,7 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 BTC    [↑/↓X.X%] — [TLDR, Mike's voice]
 MSTR   [↑/↓X.X%] — [TLDR]
 STRC   [↑/↓X.X%] — [TLDR]
+COIN   [↑/↓X.X%] — [TLDR]
 IREN   [↑/↓X.X%] — [TLDR]
 NVDA   [↑/↓X.X%] — [TLDR]
 AVGO   [↑/↓X.X%] — [TLDR]
