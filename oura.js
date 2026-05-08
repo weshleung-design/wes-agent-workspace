@@ -97,11 +97,25 @@ export async function getOuraData() {
       ? Math.round(session.total_sleep_duration / 60)
       : null;
 
-  // Steps — match to reportDay; avg from all other days in the window
+  // Steps — use yesterday in Pacific Time explicitly.
+  // reportDay from readiness is Oura's publish date (today), so today's activity is
+  // still in progress. We want yesterday's completed count instead.
+  const ptYesterday = new Date();
+  ptYesterday.setDate(ptYesterday.getDate() - 1);
+  const yesterdayPT = ptYesterday.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+
   const activityData = dailyActivity.data ?? [];
-  const todayActivity = activityData.find(d => d.day === reportDay) ?? null;
+
+  // Debug: log raw activity response so we can confirm the correct field
+  const recentActivity = activityData.slice(-3);
+  console.log("OURA ACTIVITY (last 3 days):", JSON.stringify(recentActivity, null, 2));
+  console.log("OURA ACTIVITY target date:", yesterdayPT);
+
+  const todayActivity = activityData.find(d => d.day === yesterdayPT) ?? null;
+  console.log("OURA ACTIVITY matched entry:", JSON.stringify(todayActivity, null, 2));
+
   const steps = todayActivity?.steps ?? null;
-  const stepsHistory = activityData.filter(d => d.day !== reportDay && d.steps != null).map(d => d.steps);
+  const stepsHistory = activityData.filter(d => d.day !== yesterdayPT && d.steps != null).map(d => d.steps);
   const steps30DayAvg = stepsHistory.length > 0
     ? Math.round(stepsHistory.reduce((a, b) => a + b, 0) / stepsHistory.length)
     : null;
