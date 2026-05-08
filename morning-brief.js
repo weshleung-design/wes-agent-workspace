@@ -367,31 +367,34 @@ function briefToHtml(text, prices = {}) {
   const sleepHours =
     oura.totalSleepMinutes != null
       ? `${Math.floor(oura.totalSleepMinutes / 60)}h ${String(oura.totalSleepMinutes % 60).padStart(2, "0")}m`
-      : "unknown";
+      : null;
 
-  const hrvChangeStr =
-    oura.hrvPercentChange != null
-      ? `${oura.hrvPercentChange > 0 ? "+" : ""}${oura.hrvPercentChange}%`
-      : "unknown";
+  // Build body data lines — only include lines where we have real data
+  const bodyLines = [
+    `- Date: ${oura.reportDay}${oura.isFallback ? " (latest available, today not yet synced)" : ""}`,
+  ];
+  if (oura.readinessScore != null) bodyLines.push(`- Readiness score: ${oura.readinessScore}/100`);
+  if (oura.todayHRV != null) {
+    bodyLines.push(`- HRV last night: ${oura.todayHRV} ms`);
+    if (oura.hrv30DayAvg != null) bodyLines.push(`- HRV 30-day average: ${oura.hrv30DayAvg} ms`);
+    if (oura.hrvPercentChange != null) bodyLines.push(`- HRV % vs 30-day avg: ${oura.hrvPercentChange > 0 ? "+" : ""}${oura.hrvPercentChange}%`);
+    bodyLines.push(`- HRV consecutive decline streak: ${oura.hrvStreakDays} days`);
+  }
+  if (sleepHours != null) bodyLines.push(`- Sleep duration: ${sleepHours}`);
+  if (oura.sleepScore != null) bodyLines.push(`- Sleep score: ${oura.sleepScore}/100`);
+  if (oura.steps != null) {
+    bodyLines.push(`- Steps (yesterday): ${oura.steps.toLocaleString()}`);
+    if (oura.steps30DayAvg != null) bodyLines.push(`- Steps 30-day avg: ${oura.steps30DayAvg.toLocaleString()}`);
+    if (oura.stepsPercentChange != null) bodyLines.push(`- Steps % vs avg: ${oura.stepsPercentChange > 0 ? "+" : ""}${oura.stepsPercentChange}%`);
+  }
 
-  const stepsChangeStr =
-    oura.stepsPercentChange != null
-      ? `${oura.stepsPercentChange > 0 ? "+" : ""}${oura.stepsPercentChange}%`
-      : "unavailable";
+  const hasOuraData = oura.readinessScore != null || oura.todayHRV != null || oura.sleepScore != null || oura.steps != null;
 
   const dataBlock = `
-BODY DATA (from Oura Ring):
-- Date: ${oura.reportDay}${oura.isFallback ? " (latest available, today not yet synced)" : ""}
-- Readiness score: ${oura.readinessScore ?? "unavailable"}/100
-- HRV last night: ${oura.todayHRV ?? "unavailable"} ms
-- HRV 30-day average: ${oura.hrv30DayAvg ?? "unavailable"} ms
-- HRV % vs 30-day avg: ${hrvChangeStr}
-- HRV consecutive decline streak: ${oura.hrvStreakDays} days
-- Sleep duration: ${sleepHours}
-- Sleep score: ${oura.sleepScore ?? "unavailable"}/100
-- Steps: ${oura.steps != null ? oura.steps.toLocaleString() : "unavailable"}
-- Steps 30-day avg: ${oura.steps30DayAvg != null ? oura.steps30DayAvg.toLocaleString() : "unavailable"}
-- Steps % vs avg: ${stepsChangeStr}
+${hasOuraData
+  ? `BODY DATA (from Oura Ring):\n${bodyLines.join("\n")}`
+  : "BODY DATA: Oura sync incomplete — skip all recovery metrics, show 📋 checklist and → Mike's Rec only."
+}
 
 PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
@@ -492,28 +495,32 @@ OUTPUT FORMAT (follow exactly):
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
 ━━━━━━━━━━━━━━━━━━━━
+[If BODY DATA says "Oura sync incomplete": skip all metric lines — show only 📋 checklist and → Mike's Rec]
+
+[Only if readiness score provided]:
 Readiness: <strong>[X]/100</strong> — <strong>[label]</strong>
 [1 sentence: what it means + what today's score signals. Rotate each day:
 85+: "Oura's full-system recovery score — today it's saying go hard."
 70–84: "Oura's composite recovery signal — solid baseline, green light to train."
 below 70: "Your body's recovery signal is low — it's asking for protection today, not performance."]
 
+[Only if HRV data provided]:
 HRV: <strong>[X]ms</strong> (<strong>[↑/↓X%]</strong> vs your 30-day avg of [X]ms)
 [1 sentence: what HRV means + what today's number signals. Rotate each day:
 Above avg: "HRV measures nervous system recovery — more variation means more resilience. You're above your baseline, body is primed."
 Below avg: "HRV is your body's stress meter in reverse — below baseline means your system is still carrying load from yesterday."
 3+ day decline: "HRV is your early warning system — 3 days declining means protect it before you feel it."]
-[If HRV is "unavailable" but readiness exists]: HRV: Syncing — check the Oura app for today's read. Readiness captured at <strong>[X]/100</strong>.
-
-[If sleep duration available]: Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
-[If sleep duration is "unknown" but sleep score exists]: Sleep: Duration syncing | Score: <strong>[X]/100</strong>
 [If hrvStreakDays ≥ 3]: ⚠️ [X]-day HRV decline — [brief note]
 
-[If steps data available (not "unavailable")]:
-👟 <strong>[X,XXX] steps</strong> — [Low/Moderate/Active/High] (<strong>[↑/↓X%]</strong> vs avg)
-[1 sentence: mortality/longevity fact tied to that specific count. Rotate each day, never repeat the same stat.]
-[If steps unavailable: skip this line entirely — do not mention steps]
+[Only if sleep data provided]:
+[Both duration and score]: Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
+[Score only, no duration]: Sleep: Score: [X]/100 — [one-line read]
 
+[Only if steps data provided]:
+👟 Yesterday: <strong>[X,XXX] steps</strong> — [Low/Moderate/Active/High] (<strong>[↑/↓X%]</strong> vs avg)
+[1 sentence: mortality/longevity fact tied to that specific count. Rotate each day, never repeat the same stat.]
+
+[Only if any metric above was shown]:
 🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
 
 📋 Optimize for tomorrow:
