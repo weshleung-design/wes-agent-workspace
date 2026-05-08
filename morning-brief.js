@@ -212,7 +212,7 @@ function briefToHtml(text, prices = {}) {
   let portfolioIntro = null;
   let portfolioRows = [];
 
-  const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+  const FONT = "system-ui,-apple-system,sans-serif";
 
   function maColor(val) {
     if (val == null) return "#6b7280";
@@ -451,7 +451,7 @@ HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
 - ALL 9 tickers shown every day — TLDR for every one, no exceptions
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
-- NOTE column: concise news-based TLDR only — write what HAPPENED (catalyst, news, macro driver). Do NOT explain what the MA numbers mean — the data speaks for itself. Do NOT write "See expanded note below." or anything like it.
+- NOTE column: 2 sentences max — write what HAPPENED (catalyst, news, macro driver). No MA explanations. No expanded narrative. No "See expanded note below." Never exceed 2 sentences.
 - No prices — % changes only
 - Mike's Close: must reference something specific from today's data, never a canned line
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
@@ -482,6 +482,11 @@ Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
 [🚫 Only if HRV declining or score <70: specific recovery action with brief why]
 
 → Mike's Rec: [One dry, precise line. Mike's conviction.]
+
+━━━━━━━━━━━━━━━━━━━━
+✅ THE CALL
+━━━━━━━━━━━━━━━━━━━━
+[One directive. No hedging. No "consider." Specific ticker or action. Mike's conviction.]
 
 ━━━━━━━━━━━━━━━━━━━━
 📊 PORTFOLIO
@@ -518,14 +523,14 @@ Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 ⛓️ ON-CHAIN
 ━━━━━━━━━━━━━━━━━━━━
 Forget the price. Look at what the holders are doing.
-[2–3 lines. Exchange netflows > LTH supply > hash rate > miner behavior. Mike's specialty — don't shortchange it.]
+[2–3 lines. 3 sentences max total. Exchange netflows > LTH supply > hash rate > miner behavior.]
 
 ━━━━━━━━━━━━━━━━━━━━
 🧭 THESIS CHECK
 ━━━━━━━━━━━━━━━━━━━━
 Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
 Momentum: [X]/10 [↑/↓]
-[Mike's 2–3 sentences referencing today's specific data. $1M thesis lens. Never canned. Mike recommends which position from the DCA list he'd be adding to today and why.]
+[3 sentences max. Today's specific data. $1M thesis lens. Which position to add today and why.]
 
 [Only if events qualify]:
 ━━━━━━━━━━━━━━━━━━━━
@@ -535,14 +540,9 @@ Momentum: [X]/10 [↑/↓]
 Fed/CPI: [Date] — [precise BTC impact]
 
 ━━━━━━━━━━━━━━━━━━━━
-✅ THE CALL
-━━━━━━━━━━━━━━━━━━━━
-[One directive. No hedging. No "consider." Specific ticker or action. Mike's conviction.]
-
-━━━━━━━━━━━━━━━━━━━━
 💡 MIKE'S CLOSE
 ━━━━━━━━━━━━━━━━━━━━
-[MUST reference something specific from today's data. Never a canned line. Different every day. 2–4 sentences. Long-term conviction. Sometimes dry wit.]
+[MUST reference something specific from today's data. Never a canned line. Different every day. 2–3 sentences max. Long-term conviction. Sometimes dry wit.]
 
 📍 MIKE'S READ
 🟢 [Position/Market] — Bullish: [one-line structural reason]
