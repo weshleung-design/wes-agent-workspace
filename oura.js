@@ -42,10 +42,16 @@ export async function getOuraData() {
   const today = isoDate(new Date());
   const thirtyDaysAgo = daysAgo(30);
 
-  const [readiness, dailySleep, sleepSessions, dailyActivity] = await Promise.all([
+  // Yesterday in Pacific Time — used for targeted step lookup
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+
+  const [readiness, dailySleep, sleepSessions, activityDay, activityHistory] = await Promise.all([
     get(`/daily_readiness?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/daily_sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
     get(`/sleep?start_date=${thirtyDaysAgo}&end_date=${today}`),
+    get(`/daily_activity?start_date=${dateStr}&end_date=${dateStr}`),
     get(`/daily_activity?start_date=${thirtyDaysAgo}&end_date=${today}`),
   ]);
 
@@ -97,25 +103,12 @@ export async function getOuraData() {
       ? Math.round(session.total_sleep_duration / 60)
       : null;
 
-  // Steps — use yesterday in Pacific Time explicitly.
-  // reportDay from readiness is Oura's publish date (today), so today's activity is
-  // still in progress. We want yesterday's completed count instead.
-  const ptYesterday = new Date();
-  ptYesterday.setDate(ptYesterday.getDate() - 1);
-  const yesterdayPT = ptYesterday.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  // Steps — targeted single-day query for accuracy, separate history query for avg
+  console.log("ACTIVITY DATE:", dateStr, "STEPS:", activityDay?.data?.[0]?.steps);
 
-  const activityData = dailyActivity.data ?? [];
-
-  // Debug: log raw activity response so we can confirm the correct field
-  const recentActivity = activityData.slice(-3);
-  console.log("OURA ACTIVITY (last 3 days):", JSON.stringify(recentActivity, null, 2));
-  console.log("OURA ACTIVITY target date:", yesterdayPT);
-
-  const todayActivity = activityData.find(d => d.day === yesterdayPT) ?? null;
-  console.log("OURA ACTIVITY matched entry:", JSON.stringify(todayActivity, null, 2));
-
-  const steps = todayActivity?.steps ?? null;
-  const stepsHistory = activityData.filter(d => d.day !== yesterdayPT && d.steps != null).map(d => d.steps);
+  const steps = activityDay?.data?.[0]?.steps ?? null;
+  const activityData = activityHistory.data ?? [];
+  const stepsHistory = activityData.filter(d => d.day !== dateStr && d.steps != null).map(d => d.steps);
   const steps30DayAvg = stepsHistory.length > 0
     ? Math.round(stepsHistory.reduce((a, b) => a + b, 0) / stepsHistory.length)
     : null;

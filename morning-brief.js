@@ -200,11 +200,12 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
-// Like esc() but allows <strong> and </strong> through for AI-generated text
+// Like esc() but allows <strong> through and converts **markdown** bold
 function safeHtml(s) {
   return esc(s)
     .replace(/&lt;strong&gt;/g, "<strong>")
-    .replace(/&lt;\/strong&gt;/g, "</strong>");
+    .replace(/&lt;\/strong&gt;/g, "</strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
 function briefToHtml(text, prices = {}) {
@@ -423,7 +424,7 @@ ${headsUp === "NOTHING" ? "Nothing notable in the next 7 days." : headsUp}
   console.log("[4/5] Generating brief...");
   const brief = await client().messages.create({
     model: BRIEF_MODEL,
-    max_tokens: 1500,
+    max_tokens: 2000,
     system: [{ type: "text", cache_control: { type: "ephemeral" }, text: `You are writing Wes's daily morning brief in the voice of Mike Alfred — Bitcoin conviction investor, calm authority, data-driven, institutional lens. Mike never gets emotional about price. On-chain is gospel. He's a trusted friend who has been up since 5am and already did the work.
 
 WES'S CONTEXT:
@@ -476,7 +477,7 @@ HARD RULES:
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
 - Signed "— Mike"
 
-BOLD FORMATTING RULES — use <strong> tags for scannability. Never bold full paragraphs. Only numbers, tickers, key metrics, and section-opening phrases:
+BOLD FORMATTING RULES — NEVER use ** markdown bold anywhere in the brief. Always use <strong> HTML tags. Never bold full paragraphs. Only numbers, tickers, key metrics, and section-opening phrases:
 - RECOVERY: bold score numbers, labels, HRV number and %, step count, and checklist emoji lines (see format below)
 - SIGNAL: bold emoji + first 3–4 words of each headline: "- <strong>🟢 Senate passes</strong> stablecoin bill..."
 - ON-CHAIN: bold key numbers and metrics: "<strong>8.32M BTC</strong>", "<strong>$532M</strong>", "<strong>75%</strong>"
@@ -486,12 +487,33 @@ BOLD FORMATTING RULES — use <strong> tags for scannability. Never bold full pa
 - MIKE'S READ: bold each dot line's first 3 words: "<strong>🟢 BTC —</strong> Bullish: ..."
 - PORTFOLIO ticker lines: do NOT add <strong> — the table renderer handles emphasis automatically
 
+DCA RULES (💰 DCA section):
+- Always split $300 across 2–3 positions from: BTC MSTR STRC COIN IREN NVDA AVGO GOOG CEG SCHD
+- Weight by today's signal strength — strongest thesis signal gets the largest slice
+- BTC always gets a slice unless THESIS CHECK status is CHALLENGED
+- Never make the top allocation a position with an active bear case or negative flag today
+- Reasoning must cite today's specific data: price action, news, on-chain signal, upcoming catalyst
+- Round to clean dollar amounts ($50, $75, $100, $125, $150, $200). Total must equal $300.
+
 OUTPUT FORMAT (follow exactly):
 
 🌅 GM Wes — [Weekday, Month Day] [Pacific Time]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 [Mike's opening — pick the variant that fits today]
+[Immediately after: 2-3 punchy TLDR lines. Name any earnings or macro events from HEADS UP. Add one-line market or on-chain read. Every word specific to today's data — no filler.]
+
+━━━━━━━━━━━━━━━━━━━━
+💰 DCA
+━━━━━━━━━━━━━━━━━━━━
+If I had $300 to deploy today:
+$[amount] → [TICKER] ([%])
+$[amount] → [TICKER] ([%])
+$[amount] → [TICKER] ([%])
+
+[TICKER]: [1-2 sentence reasoning — today's news, price action, on-chain signal, why NOW. Plain English.]
+[TICKER]: [same]
+[TICKER]: [same]
 
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
@@ -525,9 +547,10 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
 
 📋 Optimize for tomorrow:
-<strong>🛌 Bed by [time]</strong>: [3–5 words why]
+<strong>🛌 Bed by [time]</strong>: sleeping now vs 11pm could add [X] readiness points tomorrow — every hour before midnight counts double for deep sleep quality.
+[Calibrate [X]: score 80+: "3-5 points — protect what you have" / score 70-79: "5-8 points" / score 60-69: "8-12 points"]
 <strong>💪 Workout: [Heavy/Moderate/Light/Rest]</strong> — [3–5 words]
-<strong>💧 Water: 64oz</strong> — dehydration tanks your score
+<strong>💧 Water: 8 cups</strong> — dehydration tanks your score
 [🚫 only if HRV declining or readiness below 70]
 
 → Mike's Rec: [One sharp line. Mike's precision.]
