@@ -191,6 +191,14 @@ async function fetchHeadsUp() {
   return result;
 }
 
+async function fetchFearGreed() {
+  const res = await fetch("https://api.alternative.me/fng/?limit=1");
+  const data = await res.json();
+  const entry = data?.data?.[0];
+  if (!entry) return null;
+  return { value: Number(entry.value), label: entry.value_classification };
+}
+
 // ── HTML conversion ───────────────────────────────────────────────────────────
 
 function esc(s) {
@@ -262,7 +270,7 @@ function briefToHtml(text, prices = {}) {
       return `<tr style="background:${bg};"><td style="${cell}width:55px;font-size:13px;font-weight:600;${tickerW}"><strong>${esc(label)}</strong></td><td style="${pctCell}color:${pctColor};"><strong>${esc(pctStr)}</strong></td><td style="${pctCell}color:${maColor(v50)};">${esc(maStr(v50))}</td><td style="${pctCell}color:${maColor(v200)};">${esc(maStr(v200))}</td><td style="${cell}font-size:13px;line-height:1.4;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${safeHtml(note.trim())}</td></tr>`;
     }).join("");
     const th = `padding:8px 6px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
-    out.push(`<div style="margin:4px 0 16px;"><table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;"><thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;"><th style="${th}width:55px;text-align:left;">TICKER</th><th style="${th}width:55px;text-align:right;">24H</th><th style="${th}width:55px;text-align:right;">50D</th><th style="${th}width:55px;text-align:right;">200D</th><th style="${th}text-align:left;">NOTE</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+    out.push(`<div style="margin:4px 0 16px;"><table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;"><thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;"><th style="${th}width:55px;text-align:left;">TICKER</th><th style="${th}width:55px;text-align:right;">24H</th><th style="${th}width:55px;text-align:right;">50D</th><th style="${th}width:55px;text-align:right;">200D</th><th style="${th}text-align:left;">INTEL</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
   }
 
   while (i < lines.length) {
@@ -354,10 +362,11 @@ function briefToHtml(text, prices = {}) {
     console.log("[1/5] Oura unavailable, using fallback.");
   }
 
-  console.log("[2/5] Fetching prices (API) + news & on-chain (combined search) in parallel...");
-  const [prices, { news, onChain }] = await Promise.all([
+  console.log("[2/5] Fetching prices, news/on-chain, fear & greed in parallel...");
+  const [prices, { news, onChain }, fearGreed] = await Promise.all([
     fetchPrices().catch(() => null),
     fetchNewsAndOnChain().catch(() => ({ news: "News unavailable.", onChain: "On-chain data unavailable." })),
+    fetchFearGreed().catch(() => null),
   ]);
   console.log("[2/5] Done.");
 
@@ -417,6 +426,9 @@ ${news}
 BTC ON-CHAIN DATA:
 ${onChain}
 
+CRYPTO FEAR & GREED INDEX:
+${fearGreed ? `${fearGreed.value}/100 — ${fearGreed.label}` : "Unavailable."}
+
 7-DAY CALENDAR:
 ${headsUp === "NOTHING" ? "Nothing notable in the next 7 days." : headsUp}
 `.trim();
@@ -471,7 +483,7 @@ HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
 - ALL 10 tickers shown every day — TLDR for every one, no exceptions
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
-- NOTE column: 2 sentences max — write what HAPPENED (catalyst, news, macro driver). No MA explanations. No expanded narrative. No "See expanded note below." Never exceed 2 sentences.
+- INTEL column: 2 sentences max — write what HAPPENED (catalyst, news, macro driver). No MA explanations. No expanded narrative. Never exceed 2 sentences.
 - No prices — % changes only
 - Mike's Close: must reference something specific from today's data, never a canned line
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
@@ -492,8 +504,11 @@ DCA RULES (💰 DCA section):
 - Weight by today's signal strength — strongest thesis signal gets the largest slice
 - BTC always gets a slice unless THESIS CHECK status is CHALLENGED
 - Never make the top allocation a position with an active bear case or negative flag today
+- Do NOT recommend buying into obvious overvaluation — if a position has run hard with no new structural catalyst, or is extended well above its key MAs without fundamental justification, skip it or flag it as a hold instead
+- STRC is Wes's cash-equivalent position — recommending it is optional, not required. Only include if it's genuinely the best use of capital today.
+- On genuine high-conviction opportunity days (major structural dip, rare entry point, macro catalyst that changes the setup), Mike can suggest pulling MORE than $300 from cash — flag it explicitly: "This is a rare window. I'd pull an extra $[X] from cash today."
 - Reasoning must cite today's specific data: price action, news, on-chain signal, upcoming catalyst
-- Round to clean dollar amounts ($50, $75, $100, $125, $150, $200). Total must equal $300.
+- Round to clean dollar amounts ($50, $75, $100, $125, $150, $200). Total must equal $300 (or stated higher amount on opportunity days).
 
 OUTPUT FORMAT (follow exactly):
 
@@ -553,8 +568,6 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 <strong>💧 Water: 8 cups</strong> — dehydration tanks your score
 [🚫 only if HRV declining or readiness below 70]
 
-→ Mike's Rec: [One sharp line. Mike's precision.]
-
 ━━━━━━━━━━━━━━━━━━━━
 ✅ THE CALL
 ━━━━━━━━━━━━━━━━━━━━
@@ -597,13 +610,15 @@ Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 ━━━━━━━━━━━━━━━━━━━━
 Forget the price. Look at what the holders are doing.
 [2–3 lines. 3 sentences max total. Exchange netflows > LTH supply > hash rate > miner behavior.]
+Fear & Greed: <strong>[value]/100 — [label]</strong> [one-phrase read on what this means for positioning]
 
 ━━━━━━━━━━━━━━━━━━━━
 🧭 THESIS CHECK
 ━━━━━━━━━━━━━━━━━━━━
-Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
-Momentum: [X]/10 [↑/↓]
-[3 sentences max. Today's specific data. $1M thesis lens. Which position to add today and why.]
+Thesis: BTC hits $1M by 2030–2035 as sovereign capital, institutional adoption, and supply scarcity converge. Portfolio is structured to maximize asymmetric exposure to that outcome.
+Status: <strong>[STRENGTHENING/INTACT/WATCH/CHALLENGED]</strong>
+Momentum: <strong>[X]/10 [↑/↓]</strong>
+[2-3 sentences: what does today's specific data say about the long-term conviction? Not price action — structural signals. What does a patient, high-conviction holder do with this information right now?]
 
 [Only if events qualify]:
 ━━━━━━━━━━━━━━━━━━━━
