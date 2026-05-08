@@ -81,6 +81,20 @@ export async function getOuraData() {
       ? Math.round(hrvByDay.reduce((a, b) => a + b.hrv, 0) / hrvByDay.length)
       : null;
 
+  const hrv7DayAvg = hrvByDay.length >= 3
+    ? Math.round(hrvByDay.slice(-7).reduce((a, b) => a + b.hrv, 0) / Math.min(hrvByDay.length, 7))
+    : null;
+
+  const readinessByDay = (readiness.data ?? []).map(d => d.score).filter(s => s != null);
+  const readiness7DayAvg = readinessByDay.length >= 3
+    ? Math.round(readinessByDay.slice(-7).reduce((a, b) => a + b, 0) / Math.min(readinessByDay.length, 7))
+    : null;
+
+  const sleepScoreByDay = (dailySleep.data ?? []).map(d => d.score).filter(s => s != null);
+  const sleep7DayAvg = sleepScoreByDay.length >= 3
+    ? Math.round(sleepScoreByDay.slice(-7).reduce((a, b) => a + b, 0) / Math.min(sleepScoreByDay.length, 7))
+    : null;
+
   const todayHRV = session?.average_hrv ?? null;
   const hrvPercentChange =
     todayHRV != null && hrv30DayAvg != null
@@ -127,6 +141,9 @@ export async function getOuraData() {
     totalSleepMinutes,
     hrvStreakDays,
     nightsOfData: hrvByDay.length,
+    hrv7DayAvg,
+    readiness7DayAvg,
+    sleep7DayAvg,
     steps,
     steps30DayAvg,
     stepsPercentChange,

@@ -11,6 +11,10 @@ const SEARCH_MODEL = "claude-haiku-4-5-20251001";
 const BRIEF_MODEL  = "claude-sonnet-4-6";
 const SEARCH_TOOL  = [{ type: "web_search_20250305", name: "web_search" }];
 
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO  = process.env.GITHUB_REPO ?? "weshleung-design/wes-agent-workspace";
+const HISTORY_PATH = "brief-history.jsonl";
+
 let _client;
 function client() {
   if (!_client) {
@@ -199,6 +203,55 @@ async function fetchFearGreed() {
   return { value: Number(entry.value), label: entry.value_classification };
 }
 
+async function fetchEtfFlows() {
+  return runSearch(
+    `Search for the most recent daily Bitcoin spot ETF net flow data. Check Farside Investors (farside.co.uk) or SoSoValue for yesterday's BTC ETF flows.
+
+    Return in this exact format:
+    Total net flow: $[X]M ([net inflow/net outflow])
+    Top movers: [TICKER] $[X]M, [TICKER] $[X]M
+    [1 sentence on what this signals for institutional BTC demand]
+
+    If no data found, return exactly: "ETF flow data unavailable."`,
+    300
+  );
+}
+
+async function loadHistory() {
+  if (!GITHUB_TOKEN) return { entries: [], sha: null, allLines: [] };
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${HISTORY_PATH}`, {
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github.v3+json" },
+    });
+    if (res.status === 404) return { entries: [], sha: null, allLines: [] };
+    const data = await res.json();
+    const allLines = Buffer.from(data.content, "base64").toString("utf8").trim().split("\n").filter(Boolean);
+    const entries = allLines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).slice(-30);
+    return { entries, sha: data.sha, allLines };
+  } catch (err) {
+    console.error("History load failed:", err.message);
+    return { entries: [], sha: null, allLines: [] };
+  }
+}
+
+async function saveHistory(sha, allLines, newEntry) {
+  if (!GITHUB_TOKEN) return;
+  try {
+    const lines = [...allLines, JSON.stringify(newEntry)].slice(-365);
+    const content = Buffer.from(lines.join("\n") + "\n").toString("base64");
+    const body = { message: `brief: ${newEntry.date}`, content, committer: { name: "Morning Brief", email: "brief@wes.local" } };
+    if (sha) body.sha = sha;
+    await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${HISTORY_PATH}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    console.log("History saved.");
+  } catch (err) {
+    console.error("History save failed:", err.message);
+  }
+}
+
 // ── HTML conversion ───────────────────────────────────────────────────────────
 
 function esc(s) {
@@ -355,19 +408,28 @@ function briefToHtml(text, prices = {}) {
       sleepScore: null,
       todayHRV: null,
       hrv30DayAvg: null,
+      hrv7DayAvg: null,
       hrvPercentChange: null,
       totalSleepMinutes: null,
       hrvStreakDays: 0,
+      readiness7DayAvg: null,
+      sleep7DayAvg: null,
+      steps: null,
+      steps30DayAvg: null,
+      stepsPercentChange: null,
     };
     console.log("[1/5] Oura unavailable, using fallback.");
   }
 
-  console.log("[2/5] Fetching prices, news/on-chain, fear & greed in parallel...");
-  const [prices, { news, onChain }, fearGreed] = await Promise.all([
+  console.log("[2/5] Fetching prices, news/on-chain, fear & greed, ETF flows, history in parallel...");
+  const [prices, { news, onChain }, fearGreed, etfFlows, historyResult] = await Promise.all([
     fetchPrices().catch(() => null),
     fetchNewsAndOnChain().catch(() => ({ news: "News unavailable.", onChain: "On-chain data unavailable." })),
     fetchFearGreed().catch(() => null),
+    fetchEtfFlows().catch(() => "ETF flow data unavailable."),
+    loadHistory().catch(() => ({ entries: [], sha: null, allLines: [] })),
   ]);
+  const { entries: history, sha: historySha, allLines: historyAllLines } = historyResult;
   console.log("[2/5] Done.");
 
   console.log("[3/5] Fetching calendar (cached weekly)...");
@@ -383,15 +445,22 @@ function briefToHtml(text, prices = {}) {
   const bodyLines = [
     `- Date: ${oura.reportDay}${oura.isFallback ? " (latest available, today not yet synced)" : ""}`,
   ];
-  if (oura.readinessScore != null) bodyLines.push(`- Readiness score: ${oura.readinessScore}/100`);
+  if (oura.readinessScore != null) {
+    bodyLines.push(`- Readiness score: ${oura.readinessScore}/100`);
+    if (oura.readiness7DayAvg != null) bodyLines.push(`- Readiness 7-day avg: ${oura.readiness7DayAvg}/100`);
+  }
   if (oura.todayHRV != null) {
     bodyLines.push(`- HRV last night: ${oura.todayHRV} ms`);
+    if (oura.hrv7DayAvg != null) bodyLines.push(`- HRV 7-day avg: ${oura.hrv7DayAvg} ms`);
     if (oura.hrv30DayAvg != null) bodyLines.push(`- HRV 30-day average: ${oura.hrv30DayAvg} ms`);
     if (oura.hrvPercentChange != null) bodyLines.push(`- HRV % vs 30-day avg: ${oura.hrvPercentChange > 0 ? "+" : ""}${oura.hrvPercentChange}%`);
     bodyLines.push(`- HRV consecutive decline streak: ${oura.hrvStreakDays} days`);
   }
   if (sleepHours != null) bodyLines.push(`- Sleep duration: ${sleepHours}`);
-  if (oura.sleepScore != null) bodyLines.push(`- Sleep score: ${oura.sleepScore}/100`);
+  if (oura.sleepScore != null) {
+    bodyLines.push(`- Sleep score: ${oura.sleepScore}/100`);
+    if (oura.sleep7DayAvg != null) bodyLines.push(`- Sleep score 7-day avg: ${oura.sleep7DayAvg}/100`);
+  }
   if (oura.steps != null) {
     bodyLines.push(`- Steps (yesterday): ${oura.steps.toLocaleString()}`);
     if (oura.steps30DayAvg != null) bodyLines.push(`- Steps 30-day avg: ${oura.steps30DayAvg.toLocaleString()}`);
@@ -426,11 +495,21 @@ ${news}
 BTC ON-CHAIN DATA:
 ${onChain}
 
+BTC ETF FLOWS (yesterday):
+${etfFlows}
+
 CRYPTO FEAR & GREED INDEX:
 ${fearGreed ? `${fearGreed.value}/100 — ${fearGreed.label}` : "Unavailable."}
 
 7-DAY CALENDAR:
 ${headsUp === "NOTHING" ? "Nothing notable in the next 7 days." : headsUp}
+
+RECENT BRIEF HISTORY (last 30 days — use for pattern recognition, not for anchoring today's read):
+${history.length > 0
+  ? history.map(e =>
+      `${e.date}: Readiness=${e.readiness ?? "—"}, HRV=${e.hrv != null ? e.hrv + "ms" : "—"}, Sleep=${e.sleep ?? "—"}, BTC=${e.btcPrice != null ? "$" + e.btcPrice.toLocaleString() : "—"}, F&G=${e.fearGreed ?? "—"}, Thesis=${e.thesisStatus ?? "—"}, DCA=${e.dcaRec ?? "—"}`
+    ).join("\n")
+  : "No history yet — this is the first day of tracking."}
 `.trim();
 
   console.log("[4/5] Generating brief...");
@@ -472,8 +551,10 @@ RECOVERY TONE (adjust brief energy to match):
 
 BODY RULES:
 - HRV and Readiness: reference actual numbers vs personal 30-day avg only. No clinical jargon (no "parasympathetic," "autonomic," "quartile"). Plain English. Frame as compounding ROI.
+- 7-day trend: if 7-day averages are provided, compare today's HRV/readiness/sleep score to the 7-day avg and note briefly whether trajectory is improving or declining. One phrase, integrated naturally into the metric line — not a separate line.
 - 🔬 health fact: specific to today's actual numbers — NOT generic stats. 1 punchy sentence only.
 - Checklist: 3–5 words per item why — keep it sharp
+- RECENT BRIEF HISTORY: use it to recognize multi-day patterns (e.g. HRV trending down for a week, BTC stuck in a range, repeated "INTACT" thesis reads). Don't summarize history — let it inform your read. Never reference the history log explicitly in the brief.
 
 DIP SIGNAL (only if BTC down >5% in 24h):
 - 🩸 DIP SIGNAL: noise — macro flush, leverage wipeout, fear spike, on-chain fundamentals intact. DCA thesis strengthened, consider accelerating buy.
@@ -500,7 +581,8 @@ BOLD FORMATTING RULES — NEVER use ** markdown bold anywhere in the brief. Alwa
 - PORTFOLIO ticker lines: do NOT add <strong> — the table renderer handles emphasis automatically
 
 DCA RULES (💰 DCA section):
-- Always split $300 across 2–3 positions from: BTC MSTR STRC IREN NVDA AVGO GOOG CEG SCHD (never COIN — monitor only)
+- If there is NO clear value opportunity today — all positions extended, no structural dip, no near-term catalyst, nothing screaming value — Mike says exactly: "Nothing to deploy today — hold cash." Then add 1 sentence on what would need to change to make it worth deploying. This is a valid and sometimes preferred answer. Never force a deployment for the sake of it.
+- When deploying: split $300 across 2–3 positions from: BTC MSTR STRC IREN NVDA AVGO GOOG CEG SCHD (never COIN — monitor only)
 - Weight by today's signal strength — strongest thesis signal gets the largest slice
 - BTC always gets a slice unless THESIS CHECK status is CHALLENGED
 - Never make the top allocation a position with an active bear case or negative flag today
@@ -529,6 +611,9 @@ $[amount] → [TICKER] ([%])
 [TICKER]: [1-2 sentence reasoning — today's news, price action, on-chain signal, why NOW. Plain English.]
 [TICKER]: [same]
 [TICKER]: [same]
+
+OR — if no clear value opportunity:
+Nothing to deploy today — hold cash. [1 sentence: what needs to change before it's worth deploying.]
 
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
@@ -610,6 +695,7 @@ Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 ━━━━━━━━━━━━━━━━━━━━
 Forget the price. Look at what the holders are doing.
 [2–3 lines. 3 sentences max total. Exchange netflows > LTH supply > hash rate > miner behavior.]
+ETF Flows: <strong>$[X]M [net inflow/outflow]</strong> — [one-phrase read on institutional demand signal]
 Fear & Greed: <strong>[value]/100 — [label]</strong> [one-phrase read on what this means for positioning]
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -666,6 +752,30 @@ Fed/CPI: [Date] — [precise BTC impact]
   } catch (err) {
     console.error("[5/5] Email failed (non-fatal):", err.message);
   }
+
+  // Extract thesis status and DCA rec from the brief output, then persist to history
+  const thesisMatch = output.match(/Status:\s*(?:<strong>)?(STRENGTHENING|INTACT|WATCH|CHALLENGED)(?:<\/strong>)?/i);
+  const thesisStatus = thesisMatch?.[1]?.toUpperCase() ?? null;
+
+  let dcaRec = null;
+  if (/nothing to deploy today/i.test(output)) {
+    dcaRec = "wait";
+  } else {
+    const dcaLines = output.match(/^\$\d+\s*→\s*[A-Z]+/gm);
+    if (dcaLines) dcaRec = dcaLines.map(l => l.trim()).join(", ");
+  }
+
+  await saveHistory(historySha, historyAllLines, {
+    date: oura.reportDay,
+    readiness: oura.readinessScore,
+    hrv: oura.todayHRV,
+    sleep: oura.sleepScore,
+    steps: oura.steps,
+    btcPrice: prices?.BTC?.price ?? null,
+    fearGreed: fearGreed?.value ?? null,
+    thesisStatus,
+    dcaRec,
+  });
 })().catch((err) => {
   console.error("Error:", err.message);
   process.exit(1);
