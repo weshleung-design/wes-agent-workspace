@@ -200,6 +200,13 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
+// Like esc() but allows <strong> and </strong> through for AI-generated text
+function safeHtml(s) {
+  return esc(s)
+    .replace(/&lt;strong&gt;/g, "<strong>")
+    .replace(/&lt;\/strong&gt;/g, "</strong>");
+}
+
 function briefToHtml(text, prices = {}) {
   const DIVIDER = /^━+$/;
   // Permissive: optional ⚡, 2-5 caps, space, any % change format, any dash, note
@@ -234,7 +241,7 @@ function briefToHtml(text, prices = {}) {
     if (!rows.length) return;
 
     if (intro) {
-      out.push(`<p style="margin:0 0 12px;color:#9ca3af;font-size:13px;font-style:italic;font-family:${FONT};">${esc(intro)}</p>`);
+      out.push(`<p style="margin:0 0 12px;color:#9ca3af;font-size:13px;font-style:italic;font-family:${FONT};">${safeHtml(intro)}</p>`);
     }
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
       const pd       = prices[ticker] ?? {};
@@ -251,7 +258,7 @@ function briefToHtml(text, prices = {}) {
       const label    = showFlag ? `⚡ ${ticker}` : ticker;
       const cell     = `padding:8px 6px;font-family:${FONT};`;
       const pctCell  = `${cell}width:55px;font-size:12px;font-weight:600;text-align:right;white-space:nowrap;`;
-      return `<tr style="background:${bg};"><td style="${cell}width:55px;font-size:13px;font-weight:600;${tickerW}">${esc(label)}</td><td style="${pctCell}color:${pctColor};">${esc(pctStr)}</td><td style="${pctCell}color:${maColor(v50)};">${esc(maStr(v50))}</td><td style="${pctCell}color:${maColor(v200)};">${esc(maStr(v200))}</td><td style="${cell}font-size:13px;line-height:1.4;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${esc(note.trim())}</td></tr>`;
+      return `<tr style="background:${bg};"><td style="${cell}width:55px;font-size:13px;font-weight:600;${tickerW}"><strong>${esc(label)}</strong></td><td style="${pctCell}color:${pctColor};"><strong>${esc(pctStr)}</strong></td><td style="${pctCell}color:${maColor(v50)};">${esc(maStr(v50))}</td><td style="${pctCell}color:${maColor(v200)};">${esc(maStr(v200))}</td><td style="${cell}font-size:13px;line-height:1.4;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${safeHtml(note.trim())}</td></tr>`;
     }).join("");
     const th = `padding:8px 6px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
     out.push(`<div style="margin:4px 0 16px;"><table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;"><thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;"><th style="${th}width:55px;text-align:left;">TICKER</th><th style="${th}width:55px;text-align:right;">24H</th><th style="${th}width:55px;text-align:right;">50D</th><th style="${th}width:55px;text-align:right;">200D</th><th style="${th}text-align:left;">NOTE</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
@@ -314,7 +321,7 @@ function briefToHtml(text, prices = {}) {
     }
 
     // Regular text line
-    out.push(`<p style="margin:4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;">${esc(trim)}</p>`);
+    out.push(`<p style="margin:4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;">${safeHtml(trim)}</p>`);
     i++;
   }
 
@@ -439,9 +446,9 @@ RECOVERY TONE (adjust brief energy to match):
 - Readiness below 55: calm, keep it tight
 
 BODY RULES:
-- HRV fact must reference his actual numbers vs his personal 30-day avg
-- Health fact: specific to his data that day — NOT generic stats. Plain English, no clinical jargon (no "parasympathetic," "autonomic," "quartile"). Write like texting a friend. Frame as compounding ROI — longevity, glass skin, cognitive edge. Max 2 sentences.
-- Checklist: include the WHY briefly for each item so Wes knows what lever he's pulling
+- HRV and Readiness: reference actual numbers vs personal 30-day avg only. No clinical jargon (no "parasympathetic," "autonomic," "quartile"). Plain English. Frame as compounding ROI.
+- 🔬 health fact: specific to today's actual numbers — NOT generic stats. 1 punchy sentence only.
+- Checklist: 3–5 words per item why — keep it sharp
 
 DIP SIGNAL (only if BTC down >5% in 24h):
 - 🩸 DIP SIGNAL: noise — macro flush, leverage wipeout, fear spike, on-chain fundamentals intact. DCA thesis strengthened, consider accelerating buy.
@@ -457,6 +464,16 @@ HARD RULES:
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
 - Signed "— Mike"
 
+BOLD FORMATTING RULES — use <strong> tags for scannability. Never bold full paragraphs. Only numbers, tickers, key metrics, and section-opening phrases:
+- RECOVERY: bold score numbers, labels, HRV number and %, step count, and checklist emoji lines (see format below)
+- SIGNAL: bold emoji + first 3–4 words of each headline: "- <strong>🟢 Senate passes</strong> stablecoin bill..."
+- ON-CHAIN: bold key numbers and metrics: "<strong>8.32M BTC</strong>", "<strong>$532M</strong>", "<strong>75%</strong>"
+- THESIS CHECK: bold the status value and momentum score: "Status: <strong>STRENGTHENING</strong>" / "Momentum: <strong>8/10 ↑</strong>"
+- HEADS UP: bold event name and date: "<strong>IREN earnings: May 7</strong>"
+- THE CALL: bold the ticker: "Add <strong>IREN</strong> before earnings close"
+- MIKE'S READ: bold each dot line's first 3 words: "<strong>🟢 BTC —</strong> Bullish: ..."
+- PORTFOLIO ticker lines: do NOT add <strong> — the table renderer handles emphasis automatically
+
 OUTPUT FORMAT (follow exactly):
 
 🌅 GM Wes — [Weekday, Month Day] [Pacific Time]
@@ -467,21 +484,30 @@ OUTPUT FORMAT (follow exactly):
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
 ━━━━━━━━━━━━━━━━━━━━
-Readiness: [X]/100 — [Optimal/Solid/Moderate/Low]
-HRV: [X]ms ([↑/↓X%] vs your 30-day average of [X]ms) — [one-line plain English read]
+Readiness: <strong>[X]/100</strong> — <strong>[label]</strong>
+[1 sentence: what it means + what today's score signals. Rotate each day:
+85+: "Oura's full-system recovery score — today it's saying go hard."
+70–84: "Oura's composite recovery signal — solid baseline, green light to train."
+below 70: "Your body's recovery signal is low — it's asking for protection today, not performance."]
+
+HRV: <strong>[X]ms</strong> (<strong>[↑/↓X%]</strong> vs your 30-day avg of [X]ms)
+[1 sentence: what HRV means + what today's number signals. Rotate each day:
+Above avg: "HRV measures nervous system recovery — more variation means more resilience. You're above your baseline, body is primed."
+Below avg: "HRV is your body's stress meter in reverse — below baseline means your system is still carrying load from yesterday."
+3+ day decline: "HRV is your early warning system — 3 days declining means protect it before you feel it."]
+
 Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
 [If hrvStreakDays ≥ 3]: ⚠️ [X]-day HRV decline — [brief note]
 
-🔬 [One health fact — specific to his actual HRV/readiness numbers today. Plain English. No jargon. Frame as compounding ROI. Max 2 sentences.]
+🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
 
 📋 Optimize for tomorrow:
-🛌 Bed by [specific time]: [one-line why, tied to his score]
-💪 Workout: [Heavy/Moderate/Light/Rest] — [reason tied to readiness]
-👟 Steps: [8,000 or 5,000 on recovery days] — [one-line why]
-💧 Water: 64oz — dehydration raises resting heart rate, which directly tanks your readiness score
-[🚫 Only if HRV declining or score <70: specific recovery action with brief why]
+<strong>🛌 Bed by [time]</strong>: [3–5 words why]
+<strong>💪 Workout: [Heavy/Moderate/Light/Rest]</strong> — [3–5 words]
+<strong>💧 Water: 64oz</strong> — dehydration tanks your score
+[🚫 only if HRV declining or readiness below 70]
 
-→ Mike's Rec: [One dry, precise line. Mike's conviction.]
+→ Mike's Rec: [One sharp line. Mike's precision.]
 
 ━━━━━━━━━━━━━━━━━━━━
 ✅ THE CALL
