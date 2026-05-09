@@ -3,5 +3,5 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "node morning-brief.js"
-cronSchedule = "30 16 * * *"
+cronSchedule = "30 16 * * 1-5"
 restartPolicyType = "never"
