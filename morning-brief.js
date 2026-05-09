@@ -14,8 +14,6 @@ if (day === 'Saturday' || day === 'Sunday') {
   process.exit(0);
 }
 
-console.log("ENV CHECK:", !!process.env.ANTHROPIC_API_KEY);
-
 const SEARCH_MODEL = "claude-haiku-4-5-20251001";
 const BRIEF_MODEL  = "claude-sonnet-4-6";
 const SEARCH_TOOL  = [{ type: "web_search_20250305", name: "web_search" }];
@@ -290,11 +288,9 @@ function briefToHtml(text, prices = {}) {
   let portfolioIntro = null;
   let portfolioRows = [];
 
-  const FONT = "system-ui,-apple-system,sans-serif";
-
-  function maColor(val) {
-    if (val == null) return "#6b7280";
-    return val >= 0 ? "#4ade80" : "#f87171";
+  function maClass(val) {
+    if (val == null) return "neutral";
+    return val >= 0 ? "positive" : "negative";
   }
   function maStr(val) {
     if (val == null) return "—";
@@ -302,7 +298,6 @@ function briefToHtml(text, prices = {}) {
   }
 
   function flushPortfolio() {
-    // ALWAYS reset portfolio state — never leave inPortfolio=true accidentally
     inPortfolio = false;
     const rows = portfolioRows;
     const intro = portfolioIntro;
@@ -312,27 +307,23 @@ function briefToHtml(text, prices = {}) {
     if (!rows.length) return;
 
     if (intro) {
-      out.push(`<p style="margin:0 0 12px;color:#9ca3af;font-size:13px;font-style:italic;font-family:${FONT};">${safeHtml(intro)}</p>`);
+      out.push(`<p class="neutral" style="margin:0 0 12px;font-size:13px;font-style:italic;">${safeHtml(intro)}</p>`);
     }
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
-      const pd       = prices[ticker] ?? {};
-      const pct24h   = pd.pct24h ?? null;
-      const v50      = pd.vs50d  ?? null;
-      const v200     = pd.vs200d ?? null;
-      const isFlat   = pct24h != null && Math.abs(pct24h) < 0.5;
-      const pctColor = pct24h == null ? "#6b7280" : isFlat ? "#6b7280" : pct24h >= 0 ? "#4ade80" : "#f87171";
-      const pctStr   = pct24h != null ? (pct24h >= 0 ? "↑" : "↓") + Math.abs(pct24h).toFixed(1) + "%" : "—";
+      const pd      = prices[ticker] ?? {};
+      const pct24h  = pd.pct24h ?? null;
+      const v50     = pd.vs50d  ?? null;
+      const v200    = pd.vs200d ?? null;
+      const isFlat  = pct24h != null && Math.abs(pct24h) < 0.5;
+      const pctClass = pct24h == null ? "neutral" : isFlat ? "neutral" : pct24h >= 0 ? "positive" : "negative";
+      const pctStr  = pct24h != null ? (pct24h >= 0 ? "↑" : "↓") + Math.abs(pct24h).toFixed(1) + "%" : "—";
       const autoFlag = pct24h != null && Math.abs(pct24h) >= 3;
       const showFlag = flagged || autoFlag;
-      const bg       = idx % 2 === 0 ? "#1a1a1a" : "#1e1e1e";
-      const tickerW  = showFlag ? "font-weight:700;color:#e0e0e0;" : "color:#e0e0e0;";
-      const label    = showFlag ? `⚡ ${ticker}` : ticker;
-      const cell     = `padding:8px 6px;font-family:${FONT};`;
-      const pctCell  = `${cell}width:55px;font-size:12px;font-weight:600;text-align:right;white-space:nowrap;`;
-      return `<tr style="background:${bg};"><td style="${cell}width:55px;font-size:13px;font-weight:600;${tickerW}"><strong>${esc(label)}</strong></td><td style="${pctCell}color:${pctColor};"><strong>${esc(pctStr)}</strong></td><td style="${pctCell}color:${maColor(v50)};">${esc(maStr(v50))}</td><td style="${pctCell}color:${maColor(v200)};">${esc(maStr(v200))}</td><td style="${cell}font-size:13px;line-height:1.4;color:#9ca3af;word-wrap:break-word;word-break:break-word;">${safeHtml(note.trim())}</td></tr>`;
+      const rowClass = showFlag ? "flag-row" : idx % 2 !== 0 ? "row-alt" : "";
+      const label   = showFlag ? `⚡ ${ticker}` : ticker;
+      return `<tr class="${rowClass}"><td class="col-ticker">${esc(label)}</td><td class="col-24h ${pctClass}">${esc(pctStr)}</td><td class="col-50d ${maClass(v50)}">${esc(maStr(v50))}</td><td class="col-200d ${maClass(v200)}">${esc(maStr(v200))}</td><td class="col-note">${safeHtml(note.trim())}</td></tr>`;
     }).join("");
-    const th = `padding:8px 6px;font-weight:normal;font-family:${FONT};font-size:11px;letter-spacing:0.05em;color:#6b7280;`;
-    out.push(`<div style="margin:4px 0 16px;"><table style="border-collapse:collapse;width:100%;background:#1a1a1a;border:1px solid #2a2a2a;table-layout:fixed;"><thead><tr style="background:#222222;border-bottom:1px solid #2a2a2a;"><th style="${th}width:55px;text-align:left;">TICKER</th><th style="${th}width:55px;text-align:right;">24H</th><th style="${th}width:55px;text-align:right;">50D</th><th style="${th}width:55px;text-align:right;">200D</th><th style="${th}text-align:left;">INTEL</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+    out.push(`<table class="portfolio-table"><thead><tr><th class="col-ticker">TICKER</th><th class="col-24h">24H</th><th class="col-50d">50D</th><th class="col-200d">200D</th><th>INTEL</th></tr></thead><tbody>${rowsHtml}</tbody></table>`);
   }
 
   while (i < lines.length) {
@@ -343,8 +334,7 @@ function briefToHtml(text, prices = {}) {
     if (DIVIDER.test(trim) && i + 2 < lines.length && DIVIDER.test(lines[i + 2].trim())) {
       flushPortfolio();
       const header = lines[i + 1].trim();
-      out.push(`<hr style="border:none;border-top:1px solid #2a2a2a;margin:24px 0 10px;">
-        <p style="margin:0 0 10px;font-weight:700;font-size:13px;letter-spacing:0.05em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">${esc(header)}</p>`);
+      out.push(`<hr class="divider"><p class="section-title">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
       continue;
@@ -353,7 +343,7 @@ function briefToHtml(text, prices = {}) {
     // Standalone divider
     if (DIVIDER.test(trim)) {
       flushPortfolio();
-      out.push(`<hr style="border:none;border-top:1px solid #333333;margin:16px 0;">`);
+      out.push(`<hr class="divider">`);
       i++;
       continue;
     }
@@ -392,14 +382,15 @@ function briefToHtml(text, prices = {}) {
     }
 
     // Regular text line
-    out.push(`<p style="margin:4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;">${safeHtml(trim)}</p>`);
+    out.push(`<p>${safeHtml(trim)}</p>`);
     i++;
   }
 
   flushPortfolio();
 
-  const body = out.join("").replace(/<!--[\s\S]*?-->/g, "").replace(/\s{2,}/g, " ").replace(/>\s+</g, "><");
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#0f0f0f;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#e0e0e0;background:#0f0f0f;padding:16px;max-width:600px;margin:0 auto;">${body}</div></body></html>`;
+  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}strong,b{color:#fff}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #333}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #222;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#d1d5db}.row-alt{background:#111}.flag-row{background:#1a1a00}`;
+  const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -573,7 +564,7 @@ HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
 - ALL 10 tickers shown every day — TLDR for every one, no exceptions
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
-- INTEL column: 2 sentences max — write what HAPPENED (catalyst, news, macro driver). No MA explanations. No expanded narrative. Never exceed 2 sentences.
+- INTEL column: exactly 1.5 sentences — Sentence 1: signal read (flat/up/down + why). Sentence 2: news context or thesis note, max 8 words. Always include news context if a material headline exists for that ticker today. Never 3 sentences. Never a full paragraph.
 - No prices — % changes only
 - Mike's Close: must reference something specific from today's data, never a canned line
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
@@ -703,17 +694,18 @@ Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 ⛓️ ON-CHAIN
 ━━━━━━━━━━━━━━━━━━━━
 Forget the price. Look at what the holders are doing.
-[2–3 lines. 3 sentences max total. Exchange netflows > LTH supply > hash rate > miner behavior.]
+[Exactly 2 more sentences of on-chain data + insight. Hard cap: 3 sentences total including the opener. No more. Exchange netflows > LTH supply > hash rate > miner behavior.]
 ETF Flows: <strong>$[X]M [net inflow/outflow]</strong> — [one-phrase read on institutional demand signal]
 Fear & Greed: <strong>[value]/100 — [label]</strong> [one-phrase read on what this means for positioning]
 
 ━━━━━━━━━━━━━━━━━━━━
 🧭 THESIS CHECK
 ━━━━━━━━━━━━━━━━━━━━
-Thesis: BTC hits $1M by 2030–2035 as sovereign capital, institutional adoption, and supply scarcity converge. Portfolio is structured to maximize asymmetric exposure to that outcome.
+Thesis: BTC reaches $1M by 2030–2035 as sovereign capital, institutional adoption, and supply scarcity converge. AI spend accelerates through the decade — compute demand, energy infrastructure, and agent economies create structural tailwinds for NVDA, AVGO, GOOG, CEG, and IREN simultaneously. Portfolio is built to maximize asymmetric exposure across both.
 Status: <strong>[STRENGTHENING/INTACT/WATCH/CHALLENGED]</strong>
 Momentum: <strong>[X]/10 [↑/↓]</strong>
-[2-3 sentences: what does today's specific data say about the long-term conviction? Not price action — structural signals. What does a patient, high-conviction holder do with this information right now?]
+[3 sentences max: what does today's specific data say about the long-term conviction? Not price action — structural signals.]
+⚠️ Why not [X]/10: [2 sentences — one specific risk to the BTC thesis, one specific risk to the AI thesis. Realistic, not alarmist. BTC examples: regulatory reversal, timeline slippage, dollar credibility holding. AI examples: monetization disappointment, multiple compression, capex cycle pause.]
 
 [Only if events qualify]:
 ━━━━━━━━━━━━━━━━━━━━
@@ -749,11 +741,14 @@ Fed/CPI: [Date] — [precise BTC impact]
       month: "long",
       day: "numeric",
     });
+    let emailHtml = briefToHtml(output, prices);
+    emailHtml = emailHtml.replace(/\n\s*\n/g, "\n").replace(/>\s+</g, "><").trim();
+    console.log("Email size:", Math.round(Buffer.byteLength(emailHtml, "utf8") / 1024), "KB");
     const { error } = await resend.emails.send({
       from: "onboarding@resend.dev",
       to: "wes.h.leung@gmail.com",
       subject: `🌅 GM Wes — ${today}`,
-      html: briefToHtml(output, prices),
+      html: emailHtml,
       text: output,
     });
     if (error) throw new Error(error.message);

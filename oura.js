@@ -119,8 +119,6 @@ export async function getOuraData() {
   // Steps — find yesterday (PT) within the 30-day window
   const activityData = dailyActivity.data ?? [];
   const yesterdayEntry = activityData.find(d => d.day === dateStr) ?? null;
-  console.log("ACTIVITY DATE:", dateStr, "STEPS:", yesterdayEntry?.steps);
-
   const steps = yesterdayEntry?.steps ?? null;
   const stepsHistory = activityData.filter(d => d.day !== dateStr && d.steps != null).map(d => d.steps);
   const steps30DayAvg = stepsHistory.length > 0
