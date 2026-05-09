@@ -5,6 +5,15 @@ import { getOuraData } from "./oura.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
 
+const day = new Date().toLocaleDateString('en-US', {
+  timeZone: 'America/Los_Angeles',
+  weekday: 'long'
+});
+if (day === 'Saturday' || day === 'Sunday') {
+  console.log('Weekend — no brief today.');
+  process.exit(0);
+}
+
 console.log("ENV CHECK:", !!process.env.ANTHROPIC_API_KEY);
 
 const SEARCH_MODEL = "claude-haiku-4-5-20251001";
