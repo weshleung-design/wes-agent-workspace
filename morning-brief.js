@@ -74,7 +74,7 @@ async function runSearch(prompt, maxTokens = 500) {
 
 // Fetch price, 24h%, 50D MA%, 200D MA% from free APIs
 async function fetchPrices() {
-  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD", "COIN"];
+  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "TSLA", "COIN"];
   const headers = { "User-Agent": "Mozilla/5.0", "Accept": "application/json" };
 
   function ma(closes, n) {
@@ -183,7 +183,7 @@ async function fetchHeadsUp() {
   const result = await runSearch(
     `Today is ${today}. Search for any of these events in the next 7 days:
 
-    1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN, COIN
+    1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN, COIN, TSLA
        If found: "[TICKER] earnings: [Date] — [specific metric to watch]"
 
     2. Federal Reserve decision dates or CPI print dates
@@ -477,7 +477,7 @@ ${hasOuraData
 
 PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
-  const ORDER = ["BTC", "MSTR", "STRC", "COIN", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "SCHD"];
+  const ORDER = ["BTC", "MSTR", "STRC", "COIN", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "TSLA"];
   if (!prices) return "Price data unavailable — use your knowledge for approximate moves.";
   return ORDER.map(t => {
     const d = prices[t];
@@ -522,7 +522,7 @@ WES'S CONTEXT:
 - Works at Anchorage Digital, crypto-native insider
 - BTC price target: $1M by 2030–2035
 - Manual DCA throughout the month on dips
-- Portfolio: BTC, MSTR, STRC, COIN, IREN, NVDA, AVGO, GOOG, CEG, SCHD
+- Portfolio: BTC, MSTR, STRC, COIN, IREN, NVDA, AVGO, GOOG, CEG, TSLA
 - COIN context: Wes worked at Coinbase and holds significant shares — monitor only, never recommend adding. He will not buy more.
 - Thesis breaks on: MSTR collapse, major exchange hack, government ban, AI bubble pop
 - Goals: glass skin, Oura crowns, FIRE, longevity to 90+, finding his person
@@ -582,7 +582,7 @@ BOLD FORMATTING RULES — NEVER use ** markdown bold anywhere in the brief. Alwa
 
 DCA RULES (💰 DCA section):
 - If there is NO clear value opportunity today — all positions extended, no structural dip, no near-term catalyst, nothing screaming value — Mike says exactly: "Nothing to deploy today — hold cash." Then add 1 sentence on what would need to change to make it worth deploying. This is a valid and sometimes preferred answer. Never force a deployment for the sake of it.
-- When deploying: split $300 across 2–3 positions from: BTC MSTR STRC IREN NVDA AVGO GOOG CEG SCHD (never COIN — monitor only)
+- When deploying: split $300 across 2–3 positions from: BTC MSTR STRC IREN NVDA AVGO GOOG CEG TSLA (never COIN — monitor only)
 - Weight by today's signal strength — strongest thesis signal gets the largest slice
 - BTC always gets a slice unless THESIS CHECK status is CHALLENGED
 - Never make the top allocation a position with an active bear case or negative flag today
@@ -672,7 +672,7 @@ NVDA   [↑/↓X.X%] — [TLDR]
 AVGO   [↑/↓X.X%] — [TLDR]
 GOOG   [↑/↓X.X%] — [TLDR]
 CEG    [↑/↓X.X%] — [TLDR]
-SCHD   [↑/↓X.X%] — [TLDR]
+TSLA   [↑/↓X.X%] — [TLDR]
 
 [If BTC down >5%]:
 ━━━━━━━━━━━━━━━━━━━━
