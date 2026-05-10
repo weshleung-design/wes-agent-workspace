@@ -564,7 +564,7 @@ HARD RULES:
 - Date header: ALWAYS Pacific Time (America/Los_Angeles)
 - ALL 10 tickers shown every day — TLDR for every one, no exceptions
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
-- INTEL column: exactly 1.5 sentences — Sentence 1: signal read (flat/up/down + why). Sentence 2: news context or thesis note, max 8 words. Always include news context if a material headline exists for that ticker today. Never 3 sentences. Never a full paragraph.
+- INTEL column: default 1.5 sentences — Sentence 1: signal read (flat/up/down + why). Sentence 2: news context or thesis note, max 8 words. Exception: if there is a major announcement for that ticker today (earnings surprise, acquisition, regulatory ruling, product launch, large deal), up to 3 sentences is allowed — use the extra sentence to explain the specific impact. Never exceed 3 sentences regardless.
 - No prices — % changes only
 - Mike's Close: must reference something specific from today's data, never a canned line
 - Mike's Read: structural signals only, 3–5 dots max, always include BTC
