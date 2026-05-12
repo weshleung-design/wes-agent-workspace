@@ -602,32 +602,24 @@ OUTPUT FORMAT (follow exactly):
 [If BODY DATA says "Oura sync incomplete": skip all metric lines — show only 📋 checklist and → Mike's Rec]
 
 [Only if readiness score provided]:
-Readiness: [X]/100 — [label]
-[1 sentence: what it means + what today's score signals. Rotate each day:
-85+: "Oura's full-system recovery score — today it's saying go hard."
-70–84: "Oura's composite recovery signal — solid baseline, green light to train."
-below 70: "Your body's recovery signal is low — it's asking for protection today, not performance."]
+Readiness: [X]/100 — [label] — [one short phrase that captures what it means for today, folded inline. No separate line below. Examples: "body's saying go hard." / "solid baseline, green light." / "system's asking for protection today."]
 
 [Only if HRV data provided]:
-HRV: [X]ms ([↑/↓X%] vs your 30-day avg of [X]ms)
-[1 sentence: what HRV means + what today's number signals. Rotate each day:
-Above avg: "HRV measures nervous system recovery — more variation means more resilience. You're above your baseline, body is primed."
-Below avg: "HRV is your body's stress meter in reverse — below baseline means your system is still carrying load from yesterday."
-3+ day decline: "HRV is your early warning system — 3 days declining means protect it before you feel it."]
+HRV: [X]ms ([↑/↓X%] vs 30-day avg of [X]ms) — [one short phrase inline. Examples above avg: "nervous system primed." / below avg: "still carrying yesterday's load." / 3+ day decline: "early warning — protect before you feel it."]
 [If hrvStreakDays ≥ 3]: ⚠️ [X]-day HRV decline — [brief note]
 
 [Only if sleep data provided]:
 [Both duration and score]: Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
 [Score only, no duration]: Sleep: Score: [X]/100 — [one-line read]
 🛌 Bed by [time]: add [X] readiness points — every hour before midnight counts double.
-[Calibrate [X]: score 80+: "3-5 points" / score 70-79: "5-8 points" / score 60-69: "8-12 points". Keep the line short — just the time and the points payoff.]
+[Calibrate [X]: score 80+: "3-5 points" / score 70-79: "5-8 points" / score 60-69: "8-12 points".]
 
 [Only if steps data provided]:
 👟 Yesterday: [X,XXX] steps — [Low/Moderate/Active/High] ([↑/↓X%] vs avg)
 [1 sentence: mortality/longevity fact tied to that specific count. Rotate each day, never repeat the same stat.]
 
-[Only if any metric above was shown]:
-🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
+[Only if 2+ metrics shown AND the cross-metric insight adds something genuinely new]:
+🔬 [One sentence — only what the combination of today's metrics reveals that no single line above already said. Never restate a number or fact already written. If there's nothing new to add, omit this line entirely.]
 
 ━━━━━━━━━━━━━━━━━━━━
 ✅ THE CALL
