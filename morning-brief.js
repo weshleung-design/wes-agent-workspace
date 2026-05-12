@@ -676,7 +676,12 @@ Fear & Greed: [value]/100 — [label] [one-phrase read on what this means for po
 - If both BTC and AI news today → briefly reference both strands
 - Never reference a thesis strand when today's news has nothing to do with it]
 Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
-Momentum: [X]/10 [↑/↓]
+Signal: [BUILDING/HOLDING/FADING/BREAKING]
+[Assign the signal using these criteria — pick the one that best matches today's data:
+BUILDING: ETF inflows positive + LTH accumulating + on-chain fundamentals improving + macro tailwind
+HOLDING: thesis intact but no new catalysts today, signals mixed or flat
+FADING: ETF outflows OR LTH distribution beginning OR macro headwind emerging
+BREAKING: multiple thesis pillars failing simultaneously — regulatory reversal, structural outflows, exchange crisis]
 ✅ Supporting: [1-1.5 sentences — specific data point from today that confirms the thesis. Structural, not price.]
 ⚠️ Counter: [1-1.5 sentences — what specifically challenges the AI thesis today. Look in today's news for: companies slowing/pausing AI spend, enterprise AI ROI disappointment, AI capex cuts, model commoditization, hyperscaler pullback. If a specific signal exists, name it. If not, cite the most credible standing risk to the AI investment thesis right now.]
 
