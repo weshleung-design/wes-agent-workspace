@@ -268,11 +268,14 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
-// Escape HTML and strip any bold tags / markdown bold — no bold in output
+// Escape HTML, allow <strong>/<b> through, convert **markdown** bold
 function safeHtml(s) {
   return esc(s)
-    .replace(/&lt;\/?(strong|b)&gt;/g, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1");
+    .replace(/&lt;strong&gt;/g, "<strong>")
+    .replace(/&lt;\/strong&gt;/g, "</strong>")
+    .replace(/&lt;b&gt;/g, "<b>")
+    .replace(/&lt;\/b&gt;/g, "</b>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
 function briefToHtml(text, prices = {}) {
@@ -387,7 +390,7 @@ function briefToHtml(text, prices = {}) {
 
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}`;
+  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80}.negative{color:#f87171}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
@@ -571,7 +574,7 @@ HARD RULES:
 - If any data is unavailable (ETF flows, on-chain metric, HRV, steps, sleep duration): omit that line entirely — no placeholder, no "unavailable", no "syncing". Show only confirmed data.
 - Signed "— Mike"
 
-FORMATTING RULES — plain text only. No bold, no <strong>, no <b>, no ** markdown. No HTML tags of any kind. % colors are handled by the renderer automatically — do not add any formatting around numbers or tickers.
+FORMATTING RULES — use <strong> sparingly for key numbers and tickers only (scores, HRV values, step counts, status labels, THE CALL ticker). Never bold full sentences or paragraphs. Never use ** markdown — always use <strong> tags. % colors are handled by the renderer — do not wrap percentages in any tags.
 
 DCA RULES (💰 DCA section):
 - If there is NO clear value opportunity today — all positions extended, no structural dip, no near-term catalyst, nothing screaming value — Mike says exactly: "Nothing to deploy today — hold cash." Then add 1 sentence on what would need to change to make it worth deploying. This is a valid and sometimes preferred answer. Never force a deployment for the sake of it.
