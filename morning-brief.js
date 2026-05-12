@@ -74,7 +74,7 @@ async function runSearch(prompt, maxTokens = 500) {
 
 // Fetch price, 24h%, 50D MA%, 200D MA% from free APIs
 async function fetchPrices() {
-  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "TSLA", "COIN"];
+  const STOCKS = ["MSTR", "STRC", "IREN", "NVDA", "GOOG", "CEG", "SCHD", "TSLA", "COIN"];
   const headers = { "User-Agent": "Mozilla/5.0", "Accept": "application/json" };
 
   function ma(closes, n) {
@@ -139,7 +139,7 @@ async function fetchNewsAndOnChain() {
     - Bitcoin and crypto regulation
     - BTC ETF flows
     - Institutional Bitcoin or crypto adoption
-    - AI infrastructure (NVDA, AVGO, GOOG data centers, AI chips)
+    - AI infrastructure (NVDA, GOOG data centers, AI chips)
     - Energy / nuclear (CEG, data center power)
     - Bitcoin mining (IREN, hash rate, miner economics)
     Ignore: price predictions, analyst targets, celebrity takes, Twitter drama, unrelated altcoin pumps.
@@ -183,7 +183,7 @@ async function fetchHeadsUp() {
   const result = await runSearch(
     `Today is ${today}. Search for any of these events in the next 7 days:
 
-    1. Earnings dates for: NVDA, AVGO, GOOG, CEG, MSTR, IREN, COIN, TSLA
+    1. Earnings dates for: NVDA, GOOG, CEG, MSTR, IREN, COIN, TSLA, SCHD
        If found: "[TICKER] earnings: [Date] — [specific metric to watch]"
 
     2. Federal Reserve decision dates or CPI print dates
@@ -268,12 +268,11 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
-// Like esc() but allows <strong> through and converts **markdown** bold
+// Escape HTML and strip any bold tags / markdown bold — no bold in output
 function safeHtml(s) {
   return esc(s)
-    .replace(/&lt;strong&gt;/g, "<strong>")
-    .replace(/&lt;\/strong&gt;/g, "</strong>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    .replace(/&lt;\/?(strong|b)&gt;/g, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1");
 }
 
 function briefToHtml(text, prices = {}) {
@@ -388,7 +387,7 @@ function briefToHtml(text, prices = {}) {
 
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}strong,b{color:#fff}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #333}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #222;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#d1d5db}.row-alt{background:#111}.flag-row{background:#1a1a00}`;
+  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
@@ -477,7 +476,7 @@ ${hasOuraData
 
 PORTFOLIO DATA (live — write TLDR for each using today's news/on-chain context; price and MAs shown for reference):
 ${(() => {
-  const ORDER = ["BTC", "MSTR", "STRC", "COIN", "IREN", "NVDA", "AVGO", "GOOG", "CEG", "TSLA"];
+  const ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "TSLA", "GOOG", "CEG", "SCHD", "COIN"];
   if (!prices) return "Price data unavailable — use your knowledge for approximate moves.";
   return ORDER.map(t => {
     const d = prices[t];
@@ -522,8 +521,8 @@ WES'S CONTEXT:
 - Works at Anchorage Digital, crypto-native insider
 - BTC price target: $1M by 2030–2035
 - Manual DCA throughout the month on dips
-- Portfolio: BTC, MSTR, STRC, COIN, IREN, NVDA, AVGO, GOOG, CEG, TSLA
-- COIN context: Wes worked at Coinbase and holds significant shares — monitor only, never recommend adding. He will not buy more.
+- Portfolio: BTC, MSTR, STRC, IREN, NVDA, TSLA, GOOG, CEG, SCHD, COIN
+- COIN context: Wes worked at Coinbase and holds significant shares — monitor only, never recommend adding. COIN rides crypto sentiment; note that in INTEL when relevant. He will not buy more.
 - Thesis breaks on: MSTR collapse, major exchange hack, government ban, AI bubble pop
 - Goals: glass skin, Oura crowns, FIRE, longevity to 90+, finding his person
 - Talk to him like an insider, never disclaim
@@ -566,23 +565,17 @@ HARD RULES:
 - Flag >3% moves with ⚡ on the ticker name — the TLDR stays inline on that same line. NEVER create a separate "EXPANDED NOTES" section. One line per ticker, always.
 - INTEL column: default 1.5 sentences — Sentence 1: signal read (flat/up/down + why). Sentence 2: news context or thesis note, max 8 words. Exception: if there is a major announcement for that ticker today (earnings surprise, acquisition, regulatory ruling, product launch, large deal), up to 3 sentences is allowed — use the extra sentence to explain the specific impact. Never exceed 3 sentences regardless.
 - No prices — % changes only
-- Mike's Close: must reference something specific from today's data, never a canned line
-- Mike's Read: structural signals only, 3–5 dots max, always include BTC
+- Mike's Close: must reference something specific from today's data, never a canned line. 2 sentences max.
+- Mike's Read: structural signals only, 4 dots max, always include BTC
+- COIN in INTEL: always show in portfolio table. Note crypto sentiment correlation when relevant. Never in DCA.
+- If any data is unavailable (ETF flows, on-chain metric, HRV, steps, sleep duration): omit that line entirely — no placeholder, no "unavailable", no "syncing". Show only confirmed data.
 - Signed "— Mike"
 
-BOLD FORMATTING RULES — NEVER use ** markdown bold anywhere in the brief. Always use <strong> HTML tags. Never bold full paragraphs. Only numbers, tickers, key metrics, and section-opening phrases:
-- RECOVERY: bold score numbers, labels, HRV number and %, step count, and checklist emoji lines (see format below)
-- SIGNAL: bold emoji + first 3–4 words of each headline: "- <strong>🟢 Senate passes</strong> stablecoin bill..."
-- ON-CHAIN: bold key numbers and metrics: "<strong>8.32M BTC</strong>", "<strong>$532M</strong>", "<strong>75%</strong>"
-- THESIS CHECK: bold the status value and momentum score: "Status: <strong>STRENGTHENING</strong>" / "Momentum: <strong>8/10 ↑</strong>"
-- HEADS UP: bold event name and date: "<strong>IREN earnings: May 7</strong>"
-- THE CALL: bold the ticker: "Add <strong>IREN</strong> before earnings close"
-- MIKE'S READ: bold each dot line's first 3 words: "<strong>🟢 BTC —</strong> Bullish: ..."
-- PORTFOLIO ticker lines: do NOT add <strong> — the table renderer handles emphasis automatically
+FORMATTING RULES — plain text only. No bold, no <strong>, no <b>, no ** markdown. No HTML tags of any kind. % colors are handled by the renderer automatically — do not add any formatting around numbers or tickers.
 
 DCA RULES (💰 DCA section):
 - If there is NO clear value opportunity today — all positions extended, no structural dip, no near-term catalyst, nothing screaming value — Mike says exactly: "Nothing to deploy today — hold cash." Then add 1 sentence on what would need to change to make it worth deploying. This is a valid and sometimes preferred answer. Never force a deployment for the sake of it.
-- When deploying: split $300 across 2–3 positions from: BTC MSTR STRC IREN NVDA AVGO GOOG CEG TSLA (never COIN — monitor only)
+- When deploying: split $300 across 2–3 positions from: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD (never COIN or AVGO — monitor/hold only)
 - Weight by today's signal strength — strongest thesis signal gets the largest slice
 - BTC always gets a slice unless THESIS CHECK status is CHALLENGED
 - Never make the top allocation a position with an active bear case or negative flag today
@@ -621,14 +614,14 @@ Nothing to deploy today — hold cash. [1 sentence: what needs to change before 
 [If BODY DATA says "Oura sync incomplete": skip all metric lines — show only 📋 checklist and → Mike's Rec]
 
 [Only if readiness score provided]:
-Readiness: <strong>[X]/100</strong> — <strong>[label]</strong>
+Readiness: [X]/100 — [label]
 [1 sentence: what it means + what today's score signals. Rotate each day:
 85+: "Oura's full-system recovery score — today it's saying go hard."
 70–84: "Oura's composite recovery signal — solid baseline, green light to train."
 below 70: "Your body's recovery signal is low — it's asking for protection today, not performance."]
 
 [Only if HRV data provided]:
-HRV: <strong>[X]ms</strong> (<strong>[↑/↓X%]</strong> vs your 30-day avg of [X]ms)
+HRV: [X]ms ([↑/↓X%] vs your 30-day avg of [X]ms)
 [1 sentence: what HRV means + what today's number signals. Rotate each day:
 Above avg: "HRV measures nervous system recovery — more variation means more resilience. You're above your baseline, body is primed."
 Below avg: "HRV is your body's stress meter in reverse — below baseline means your system is still carrying load from yesterday."
@@ -640,17 +633,17 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 [Score only, no duration]: Sleep: Score: [X]/100 — [one-line read]
 
 [Only if steps data provided]:
-👟 Yesterday: <strong>[X,XXX] steps</strong> — [Low/Moderate/Active/High] (<strong>[↑/↓X%]</strong> vs avg)
+👟 Yesterday: [X,XXX] steps — [Low/Moderate/Active/High] ([↑/↓X%] vs avg)
 [1 sentence: mortality/longevity fact tied to that specific count. Rotate each day, never repeat the same stat.]
 
 [Only if any metric above was shown]:
 🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
 
 📋 Optimize for tomorrow:
-<strong>🛌 Bed by [time]</strong>: sleeping now vs 11pm could add [X] readiness points tomorrow — every hour before midnight counts double for deep sleep quality.
+🛌 Bed by [time]: sleeping now vs 11pm could add [X] readiness points tomorrow — every hour before midnight counts double for deep sleep quality.
 [Calibrate [X]: score 80+: "3-5 points — protect what you have" / score 70-79: "5-8 points" / score 60-69: "8-12 points"]
-<strong>💪 Workout: [Heavy/Moderate/Light/Rest]</strong> — [3–5 words]
-<strong>💧 Water: 8 cups</strong> — dehydration tanks your score
+💪 Workout: [Heavy/Moderate/Light/Rest] — [3–5 words]
+💧 Water: 8 cups — dehydration tanks your score
 [🚫 only if HRV declining or readiness below 70]
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -666,13 +659,13 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 BTC    [↑/↓X.X%] — [TLDR, Mike's voice]
 MSTR   [↑/↓X.X%] — [TLDR]
 STRC   [↑/↓X.X%] — [TLDR]
-COIN   [↑/↓X.X%] — [TLDR]
 IREN   [↑/↓X.X%] — [TLDR]
 NVDA   [↑/↓X.X%] — [TLDR]
-AVGO   [↑/↓X.X%] — [TLDR]
+TSLA   [↑/↓X.X%] — [TLDR]
 GOOG   [↑/↓X.X%] — [TLDR]
 CEG    [↑/↓X.X%] — [TLDR]
-TSLA   [↑/↓X.X%] — [TLDR]
+SCHD   [↑/↓X.X%] — [TLDR]
+COIN   [↑/↓X.X%] — [TLDR — rides crypto sentiment; note correlation when relevant]
 
 [If BTC down >5%]:
 ━━━━━━━━━━━━━━━━━━━━
@@ -686,26 +679,31 @@ Read: [NOISE — monthly DCA as planned / STRUCTURAL — monitor before adding]
 📰 SIGNAL
 ━━━━━━━━━━━━━━━━━━━━
 [Mike's 1-line fresh intro]
-- [headline] 🟢
-- [headline] 🔴
-[- third headline if warranted]
+- [1 sentence headline] 🟢
+- [1 sentence headline] 🔴
+[- 1 sentence headline if warranted — 3 max total]
 
 ━━━━━━━━━━━━━━━━━━━━
 ⛓️ ON-CHAIN
 ━━━━━━━━━━━━━━━━━━━━
 Forget the price. Look at what the holders are doing.
-[Exactly 2 more sentences of on-chain data + insight. Hard cap: 3 sentences total including the opener. No more. Exchange netflows > LTH supply > hash rate > miner behavior.]
-ETF Flows: <strong>$[X]M [net inflow/outflow]</strong> — [one-phrase read on institutional demand signal]
-Fear & Greed: <strong>[value]/100 — [label]</strong> [one-phrase read on what this means for positioning]
+[Exactly 2 more sentences of on-chain data + insight. Hard cap: 3 sentences total including the opener. Exchange netflows > LTH supply > hash rate > miner behavior. Omit any metric you don't have confirmed data for.]
+[Only if ETF flow data available]: ETF Flows: $[X]M [net inflow/outflow] — [one-phrase read on institutional demand signal]
+Fear & Greed: [value]/100 — [label] [one-phrase read on what this means for positioning]
 
 ━━━━━━━━━━━━━━━━━━━━
 🧭 THESIS CHECK
 ━━━━━━━━━━━━━━━━━━━━
-Thesis: BTC reaches $1M by 2030–2035 as sovereign capital, institutional adoption, and supply scarcity converge. AI spend accelerates through the decade — compute demand, energy infrastructure, and agent economies create structural tailwinds for NVDA, AVGO, GOOG, CEG, and IREN simultaneously. Portfolio is built to maximize asymmetric exposure across both.
-Status: <strong>[STRENGTHENING/INTACT/WATCH/CHALLENGED]</strong>
-Momentum: <strong>[X]/10 [↑/↓]</strong>
-[3 sentences max: what does today's specific data say about the long-term conviction? Not price action — structural signals.]
-⚠️ Why not [X]/10: [2 sentences — one specific risk to the BTC thesis, one specific risk to the AI thesis. Realistic, not alarmist. BTC examples: regulatory reversal, timeline slippage, dollar credibility holding. AI examples: monetization disappointment, multiple compression, capex cycle pause.]
+[Do NOT print a fixed thesis statement. Write 1-2 sentences referencing only the thesis strand relevant to today's news:
+- BTC regulatory/macro/ETF news → reference the BTC $1M sovereign capital thesis
+- NVDA/GOOG/CEG/IREN/AI news → reference the AI infrastructure decade thesis
+- TSLA news → reference the physical AI / energy convergence thesis
+- If both BTC and AI news today → briefly reference both strands
+- Never reference a thesis strand when today's news has nothing to do with it]
+Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
+Momentum: [X]/10 [↑/↓]
+[2 sentences max: what does today's specific data say about long-term conviction? Structural signals only — not price action.]
+⚠️ Why not [X]/10: [1-2 sentences — specific, honest risk relevant to today's data. Not generic. Not alarmist.]
 
 [Only if events qualify]:
 ━━━━━━━━━━━━━━━━━━━━
@@ -717,13 +715,13 @@ Fed/CPI: [Date] — [precise BTC impact]
 ━━━━━━━━━━━━━━━━━━━━
 💡 MIKE'S CLOSE
 ━━━━━━━━━━━━━━━━━━━━
-[MUST reference something specific from today's data. Never a canned line. Different every day. 2–3 sentences max. Long-term conviction. Sometimes dry wit.]
+[MUST reference something specific from today's data. Never a canned line. Different every day. 2 sentences max. Long-term conviction. Sometimes dry wit.]
 
 📍 MIKE'S READ
 🟢 [Position/Market] — Bullish: [one-line structural reason]
 🟡 [Position/Market] — Neutral: [one-line reason]
 🔴 [Position/Market] — Watch: [one-line structural risk — NOT just price down]
-[3–5 dots max. Always include BTC. 🟢 = structural tailwind. 🟡 = mixed/waiting. 🔴 = structural headwind.]
+[4 dots max. Always include BTC. 🟢 = structural tailwind. 🟡 = mixed/waiting. 🔴 = structural headwind.]
 
 — Mike` }],
     messages: [{ role: "user", content: dataBlock }],
@@ -742,8 +740,8 @@ Fed/CPI: [Date] — [precise BTC impact]
       day: "numeric",
     });
     let emailHtml = briefToHtml(output, prices);
-    emailHtml = emailHtml.replace(/\n\s*\n/g, "\n").replace(/>\s+</g, "><").trim();
-    console.log("Email size:", Math.round(Buffer.byteLength(emailHtml, "utf8") / 1024), "KB");
+    emailHtml = emailHtml.replace(/<!--[\s\S]*?-->/g, "").replace(/\n\s*\n/g, "\n").replace(/>\s+</g, "><").trim();
+    console.log("Email KB:", Math.round(Buffer.byteLength(emailHtml, "utf8") / 1024));
     const { error } = await resend.emails.send({
       from: "onboarding@resend.dev",
       to: "wes.h.leung@gmail.com",
