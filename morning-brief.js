@@ -269,13 +269,15 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
-// Escape HTML, allow <strong>/<b> through, convert **markdown** bold
+// Escape HTML, allow <strong>/<b>/<span class="metric-value"> through, convert **markdown** bold
 function safeHtml(s) {
   return esc(s)
     .replace(/&lt;strong&gt;/g, "<strong>")
     .replace(/&lt;\/strong&gt;/g, "</strong>")
     .replace(/&lt;b&gt;/g, "<b>")
     .replace(/&lt;\/b&gt;/g, "</b>")
+    .replace(/&lt;span class="metric-value"&gt;/g, '<span class="metric-value">')
+    .replace(/&lt;\/span&gt;/g, "</span>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
@@ -301,13 +303,19 @@ function briefToHtml(text, prices = {}) {
   }
 
   function flushPortfolio() {
+    const wasPortfolio = inPortfolio;
     inPortfolio = false;
     const rows = portfolioRows;
     const intro = portfolioIntro;
     portfolioRows = [];
     portfolioIntro = null;
 
-    if (!rows.length) return;
+    if (!rows.length) {
+      if (wasPortfolio) {
+        out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — check your brokerage app for current prices.</p>`);
+      }
+      return;
+    }
 
     if (intro) {
       out.push(`<p class="neutral" style="margin:0 0 12px;font-size:13px;font-style:italic;">${safeHtml(intro)}</p>`);
@@ -391,7 +399,7 @@ function briefToHtml(text, prices = {}) {
 
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80}.negative{color:#f87171}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
+  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#e0e0e0}.col-ticker{width:55px;font-weight:600;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
@@ -434,6 +442,7 @@ function briefToHtml(text, prices = {}) {
   ]);
   const { entries: history, sha: historySha, allLines: historyAllLines } = historyResult;
   console.log("[2/5] Done.");
+  console.log("Portfolio prices:", JSON.stringify(prices ?? {}));
 
   console.log("[3/5] Fetching calendar (cached weekly)...");
   const headsUp = await fetchHeadsUp().catch(() => "NOTHING");
@@ -575,7 +584,11 @@ HARD RULES:
 - If any data is unavailable (ETF flows, on-chain metric, HRV, steps, sleep duration): omit that line entirely — no placeholder, no "unavailable", no "syncing". Show only confirmed data.
 - Signed "— Mike"
 
-FORMATTING RULES — use <strong> sparingly for key numbers and tickers only (scores, HRV values, step counts, status labels, THE CALL ticker). Never bold full sentences or paragraphs. Never use ** markdown — always use <strong> tags. % colors are handled by the renderer — do not wrap percentages in any tags.
+FORMATTING RULES — wrap all data values (readiness scores, HRV values, step counts, sleep scores, specific numbers) in <span class="metric-value"> tags so they render bright white. Examples:
+Readiness: <span class="metric-value">80/100</span> — Solid
+HRV: <span class="metric-value">58ms</span> (↑6% vs 30-day avg of <span class="metric-value">55ms</span>)
+Yesterday: <span class="metric-value">7,998 steps</span>
+Use <strong> sparingly for key tickers and status labels only (THE CALL ticker, Status/Signal values). Never bold full sentences or paragraphs. Never use ** markdown — always use <strong> or <span> tags. % colors are handled by the renderer — do not wrap percentages in any tags.
 
 DCA RULES (written inside 💡 MIKE'S CLOSE as "💰 $300 today:"):
 - Write in Mike Alfred's voice — conversational, confident, institutional lens. Not a bullet list. A short narrative.

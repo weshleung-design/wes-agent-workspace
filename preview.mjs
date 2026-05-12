@@ -10,6 +10,8 @@ function safeHtml(s) {
   return esc(s)
     .replace(/&lt;strong&gt;/g, "<strong>").replace(/&lt;\/strong&gt;/g, "</strong>")
     .replace(/&lt;b&gt;/g, "<b>").replace(/&lt;\/b&gt;/g, "</b>")
+    .replace(/&lt;span class="metric-value"&gt;/g, '<span class="metric-value">')
+    .replace(/&lt;\/span&gt;/g, "</span>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
@@ -27,10 +29,14 @@ function briefToHtml(text, prices = {}) {
   function maStr(val)   { return val == null ? "—" : (val >= 0 ? "+" : "") + val.toFixed(1) + "%"; }
 
   function flushPortfolio() {
+    const wasPortfolio = inPortfolio;
     inPortfolio = false;
     const rows = portfolioRows; const intro = portfolioIntro;
     portfolioRows = []; portfolioIntro = null;
-    if (!rows.length) return;
+    if (!rows.length) {
+      if (wasPortfolio) out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — check your brokerage app for current prices.</p>`);
+      return;
+    }
     if (intro) out.push(`<p class="neutral" style="margin:0 0 12px;font-size:13px;font-style:italic;">${safeHtml(intro)}</p>`);
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
       const pd = prices[ticker] ?? {};
@@ -69,7 +75,7 @@ function briefToHtml(text, prices = {}) {
   }
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80}.negative{color:#f87171}.neutral{color:#6b7280}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top}.col-ticker{width:55px;font-weight:600}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
+  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#e0e0e0}.col-ticker{width:55px;font-weight:600;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
@@ -99,14 +105,14 @@ ETF inflows back at $312M — largest single day since March. IREN flagged +4.2%
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
 ━━━━━━━━━━━━━━━━━━━━
-Readiness: <strong>81/100</strong> — Strong — body's saying go hard.
+Readiness: <span class="metric-value">81/100</span> — Strong — body's saying go hard.
 
-HRV: <strong>58ms</strong> (↑6% vs 30-day avg of 55ms) — nervous system primed, 7-day trend still climbing.
+HRV: <span class="metric-value">58ms</span> (↑6% vs 30-day avg of <span class="metric-value">55ms</span>) — nervous system primed, 7-day trend still climbing.
 
-Sleep: 7h 34m | Score: <strong>84</strong>/100 — deep sleep window solid, above your 7-day average.
+Sleep: <span class="metric-value">7h 34m</span> | Score: <span class="metric-value">84/100</span> — deep sleep window solid, above your 7-day average.
 🛌 Bed by 10:30pm: add 3-5 readiness points — every hour before midnight counts double.
 
-👟 Yesterday: <strong>9,247 steps</strong> — Active (↑12% vs avg)
+👟 Yesterday: <span class="metric-value">9,247 steps</span> — Active (↑12% vs avg)
 9,000 steps/day is where all-cause mortality risk starts meaningfully declining in large-cohort studies — you're above the line.
 
 🔬 Readiness up, HRV above baseline, sleep strong — this is the compounding window, not just a good day.
