@@ -312,7 +312,7 @@ function briefToHtml(text, prices = {}) {
 
     if (!rows.length) {
       if (wasPortfolio) {
-        out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — check your brokerage app for current prices.</p>`);
+        out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — market data pull failed. Check your brokerage app.</p>`);
       }
       return;
     }
@@ -433,16 +433,24 @@ function briefToHtml(text, prices = {}) {
   }
 
   console.log("[2/5] Fetching prices, news/on-chain, fear & greed, ETF flows, history in parallel...");
-  const [prices, { news, onChain }, fearGreed, etfFlows, historyResult] = await Promise.all([
+  let [prices, { news, onChain }, fearGreed, etfFlows, historyResult] = await Promise.all([
     fetchPrices().catch(() => null),
     fetchNewsAndOnChain().catch(() => ({ news: "News unavailable.", onChain: "On-chain data unavailable." })),
     fetchFearGreed().catch(() => null),
     fetchEtfFlows().catch(() => "ETF flow data unavailable."),
     loadHistory().catch(() => ({ entries: [], sha: null, allLines: [] })),
   ]);
+
+  // Retry prices once if the first attempt came back empty or failed
+  if (!prices || Object.keys(prices).length === 0) {
+    console.log("Portfolio: no data on first attempt, retrying in 5s...");
+    await sleep(5000);
+    prices = await fetchPrices().catch(() => null);
+  }
+
   const { entries: history, sha: historySha, allLines: historyAllLines } = historyResult;
   console.log("[2/5] Done.");
-  console.log("Portfolio prices:", JSON.stringify(prices ?? {}));
+  console.log("Portfolio tickers found:", Object.keys(prices ?? {}).length);
 
   console.log("[3/5] Fetching calendar (cached weekly)...");
   const headsUp = await fetchHeadsUp().catch(() => "NOTHING");

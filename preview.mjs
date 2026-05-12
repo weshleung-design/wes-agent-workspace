@@ -34,7 +34,7 @@ function briefToHtml(text, prices = {}) {
     const rows = portfolioRows; const intro = portfolioIntro;
     portfolioRows = []; portfolioIntro = null;
     if (!rows.length) {
-      if (wasPortfolio) out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — check your brokerage app for current prices.</p>`);
+      if (wasPortfolio) out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — market data pull failed. Check your brokerage app.</p>`);
       return;
     }
     if (intro) out.push(`<p class="neutral" style="margin:0 0 12px;font-size:13px;font-style:italic;">${safeHtml(intro)}</p>`);
