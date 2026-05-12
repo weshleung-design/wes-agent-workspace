@@ -140,6 +140,7 @@ async function fetchNewsAndOnChain() {
     - BTC ETF flows
     - Institutional Bitcoin or crypto adoption
     - AI infrastructure (NVDA, GOOG data centers, AI chips)
+    - AI spend slowdown signals (companies pausing/cutting AI investment, enterprise AI ROI disappointment, hyperscaler capex pullback, model commoditization)
     - Energy / nuclear (CEG, data center power)
     - Bitcoin mining (IREN, hash rate, miner economics)
     Ignore: price predictions, analyst targets, celebrity takes, Twitter drama, unrelated altcoin pumps.
@@ -576,17 +577,16 @@ HARD RULES:
 
 FORMATTING RULES — use <strong> sparingly for key numbers and tickers only (scores, HRV values, step counts, status labels, THE CALL ticker). Never bold full sentences or paragraphs. Never use ** markdown — always use <strong> tags. % colors are handled by the renderer — do not wrap percentages in any tags.
 
-DCA RULES (💰 DCA section):
-- If there is NO clear value opportunity today — all positions extended, no structural dip, no near-term catalyst, nothing screaming value — Mike says exactly: "Nothing to deploy today — hold cash." Then add 1 sentence on what would need to change to make it worth deploying. This is a valid and sometimes preferred answer. Never force a deployment for the sake of it.
-- When deploying: split $300 across 2–3 positions from: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD (never COIN or AVGO — monitor/hold only)
-- Weight by today's signal strength — strongest thesis signal gets the largest slice
-- BTC always gets a slice unless THESIS CHECK status is CHALLENGED
-- Never make the top allocation a position with an active bear case or negative flag today
-- Do NOT recommend buying into obvious overvaluation — if a position has run hard with no new structural catalyst, or is extended well above its key MAs without fundamental justification, skip it or flag it as a hold instead
-- STRC is Wes's cash-equivalent position — recommending it is optional, not required. Only include if it's genuinely the best use of capital today.
-- On genuine high-conviction opportunity days (major structural dip, rare entry point, macro catalyst that changes the setup), Mike can suggest pulling MORE than $300 from cash — flag it explicitly: "This is a rare window. I'd pull an extra $[X] from cash today."
-- Reasoning must cite today's specific data: price action, news, on-chain signal, upcoming catalyst
-- Round to clean dollar amounts ($50, $75, $100, $125, $150, $200). Total must equal $300 (or stated higher amount on opportunity days).
+DCA RULES (written inside 💡 MIKE'S CLOSE as "💰 $300 today:"):
+- Write in Mike Alfred's voice — conversational, confident, institutional lens. Not a bullet list. A short narrative.
+- Eligible tickers: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD. Never COIN or AVGO.
+- BTC always gets a slice unless THESIS CHECK status is CHALLENGED.
+- Never deploy into obvious overvaluation — if a position has run hard with no structural catalyst, say so and skip it.
+- STRC is Wes's cash-equivalent — only include if it's genuinely the best use of capital today.
+- If nothing is compelling: "Nothing worth deploying today" + 1 sentence on what specific signal would change that.
+- On rare high-conviction days (major structural dip, macro shift), Mike can suggest more than $300 — flag it: "This is a rare window."
+- Reasoning must weave together: macro context, specific company catalyst, price trend vs MAs, why this moment specifically.
+- Round to clean amounts. Total = $300 unless calling a rare opportunity.
 
 OUTPUT FORMAT (follow exactly):
 
@@ -595,21 +595,6 @@ OUTPUT FORMAT (follow exactly):
 
 [Mike's opening — pick the variant that fits today]
 [Immediately after: 2-3 punchy TLDR lines. Name any earnings or macro events from HEADS UP. Add one-line market or on-chain read. Every word specific to today's data — no filler.]
-
-━━━━━━━━━━━━━━━━━━━━
-💰 DCA
-━━━━━━━━━━━━━━━━━━━━
-If I had $300 to deploy today:
-$[amount] → [TICKER] ([%])
-$[amount] → [TICKER] ([%])
-$[amount] → [TICKER] ([%])
-
-[TICKER]: [1-2 sentence reasoning — today's news, price action, on-chain signal, why NOW. Plain English.]
-[TICKER]: [same]
-[TICKER]: [same]
-
-OR — if no clear value opportunity:
-Nothing to deploy today — hold cash. [1 sentence: what needs to change before it's worth deploying.]
 
 ━━━━━━━━━━━━━━━━━━━━
 💤 RECOVERY
@@ -634,6 +619,8 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 [Only if sleep data provided]:
 [Both duration and score]: Sleep: [Xh Xm] | Score: [X]/100 — [one-line read]
 [Score only, no duration]: Sleep: Score: [X]/100 — [one-line read]
+🛌 Bed by [time]: add [X] readiness points — every hour before midnight counts double.
+[Calibrate [X]: score 80+: "3-5 points" / score 70-79: "5-8 points" / score 60-69: "8-12 points". Keep the line short — just the time and the points payoff.]
 
 [Only if steps data provided]:
 👟 Yesterday: [X,XXX] steps — [Low/Moderate/Active/High] ([↑/↓X%] vs avg)
@@ -641,13 +628,6 @@ Below avg: "HRV is your body's stress meter in reverse — below baseline means 
 
 [Only if any metric above was shown]:
 🔬 [1 punchy sentence specific to today's actual numbers. No jargon. Frame as compounding ROI.]
-
-📋 Optimize for tomorrow:
-🛌 Bed by [time]: sleeping now vs 11pm could add [X] readiness points tomorrow — every hour before midnight counts double for deep sleep quality.
-[Calibrate [X]: score 80+: "3-5 points — protect what you have" / score 70-79: "5-8 points" / score 60-69: "8-12 points"]
-💪 Workout: [Heavy/Moderate/Light/Rest] — [3–5 words]
-💧 Water: 8 cups — dehydration tanks your score
-[🚫 only if HRV declining or readiness below 70]
 
 ━━━━━━━━━━━━━━━━━━━━
 ✅ THE CALL
@@ -705,8 +685,8 @@ Fear & Greed: [value]/100 — [label] [one-phrase read on what this means for po
 - Never reference a thesis strand when today's news has nothing to do with it]
 Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
 Momentum: [X]/10 [↑/↓]
-[2 sentences max: what does today's specific data say about long-term conviction? Structural signals only — not price action.]
-⚠️ Why not [X]/10: [1-2 sentences — specific, honest risk relevant to today's data. Not generic. Not alarmist.]
+✅ Supporting: [1-1.5 sentences — specific data point from today that confirms the thesis. Structural, not price.]
+⚠️ Counter: [1-1.5 sentences — what specifically challenges the AI thesis today. Look in today's news for: companies slowing/pausing AI spend, enterprise AI ROI disappointment, AI capex cuts, model commoditization, hyperscaler pullback. If a specific signal exists, name it. If not, cite the most credible standing risk to the AI investment thesis right now.]
 
 [Only if events qualify]:
 ━━━━━━━━━━━━━━━━━━━━
@@ -718,7 +698,10 @@ Fed/CPI: [Date] — [precise BTC impact]
 ━━━━━━━━━━━━━━━━━━━━
 💡 MIKE'S CLOSE
 ━━━━━━━━━━━━━━━━━━━━
-[MUST reference something specific from today's data. Never a canned line. Different every day. 2 sentences max. Long-term conviction. Sometimes dry wit.]
+[1-2 sentences: Mike's conviction read on today's data. Specific, never canned. Long-term lens. Dry wit when earned.]
+
+💰 $300 today: [Write in Mike's voice — not a bullet list. Weave together macro context, specific company catalyst, price trend, and why this moment. 2-3 sentences. Eligible: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD. Never COIN or AVGO.]
+[If nothing compelling: "Nothing worth deploying today — [1 sentence: what specific signal would change that]."]
 
 📍 MIKE'S READ
 🟢 [Position/Market] — Bullish: [one-line structural reason]
