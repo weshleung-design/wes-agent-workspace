@@ -284,8 +284,9 @@ function safeHtml(s) {
 function briefToHtml(text, prices = {}) {
   const PORTFOLIO_ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "TSLA", "GOOG", "CEG", "SCHD", "COIN"];
   const DIVIDER = /^━+$/;
-  // Accept +/-X.X%, ↑/↓X.X%, or N/A in the percentage position
-  const TICKER_LINE = /^(⚡\s*)?([A-Z]{2,5})\s+(?:[+\-↑↓][\d.]+%|N\/A)\s+[—–\-]\s+(.+)$/;
+  // Handles: optional ⚡, ticker, optional % (with or without +/-/↑/↓ prefix, or N/A),
+  // optional separator (—/–/-), then INTEL note. Capture groups stay at 1=flag, 2=ticker, 3=note.
+  const TICKER_LINE = /^(⚡\s*)?([A-Z]{2,5})\s+(?:[+\-↑↓]?[\d.]+%|N\/A)?\s*[—–\-]+\s*(.+)$/;
 
   const lines = text.split("\n");
   const out = [];
@@ -407,7 +408,7 @@ function briefToHtml(text, prices = {}) {
 
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#E8E8E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0;color:#E8E8E8}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:20px 0 8px}.divider{border:none;border-top:1px solid #333;margin:20px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#E8E8E8}.col-ticker{width:55px;font-weight:600;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#C8C8C8}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
+  const CSS = `body{background:#0f0f0f;color:#E8E8E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0;color:#E8E8E8}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:20px 0 8px}.divider{border:none;border-top:1px solid #333;margin:20px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#E8E8E8}.col-ticker{width:55px;font-weight:700;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#e0e0e0;font-weight:500}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
