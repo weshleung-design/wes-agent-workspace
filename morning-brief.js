@@ -654,11 +654,6 @@ HRV: [X]ms ([↑/↓X%] vs 30-day avg of [X]ms) — [one short phrase inline. Ex
 🔬 [One sentence — only what the combination of today's metrics reveals that no single line above already said. Never restate a number or fact already written. If there's nothing new to add, omit this line entirely.]
 
 ━━━━━━━━━━━━━━━━━━━━
-✅ THE CALL
-━━━━━━━━━━━━━━━━━━━━
-[One directive. No hedging. No "consider." Specific ticker or action. Mike's conviction.]
-
-━━━━━━━━━━━━━━━━━━━━
 📊 PORTFOLIO
 ━━━━━━━━━━━━━━━━━━━━
 [Mike's fresh 1-line macro framing — different every day]
@@ -701,12 +696,6 @@ Fear & Greed: [value]/100 — [label] [one-phrase read on what this means for po
 ━━━━━━━━━━━━━━━━━━━━
 🧭 THESIS CHECK
 ━━━━━━━━━━━━━━━━━━━━
-[Do NOT print a fixed thesis statement. Write 1-2 sentences referencing only the thesis strand relevant to today's news:
-- BTC regulatory/macro/ETF news → reference the BTC $1M sovereign capital thesis
-- NVDA/GOOG/CEG/IREN/AI news → reference the AI infrastructure decade thesis
-- TSLA news → reference the physical AI / energy convergence thesis
-- If both BTC and AI news today → briefly reference both strands
-- Never reference a thesis strand when today's news has nothing to do with it]
 Status: [STRENGTHENING/INTACT/WATCH/CHALLENGED]
 Signal: [BUILDING/HOLDING/FADING/BREAKING]
 [Assign the signal using these criteria — pick the one that best matches today's data:
