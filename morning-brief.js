@@ -282,14 +282,16 @@ function safeHtml(s) {
 }
 
 function briefToHtml(text, prices = {}) {
+  const PORTFOLIO_ORDER = ["BTC", "MSTR", "STRC", "IREN", "NVDA", "TSLA", "GOOG", "CEG", "SCHD", "COIN"];
   const DIVIDER = /^━+$/;
-  // Permissive: optional ⚡, 2-5 caps, space, any % change format, any dash, note
-  const TICKER_LINE = /^(⚡\s*)?([A-Z]{2,5})\s+[+\-↑↓][\d.]+%\s+[—–\-]\s+(.+)$/;
+  // Accept +/-X.X%, ↑/↓X.X%, or N/A in the percentage position
+  const TICKER_LINE = /^(⚡\s*)?([A-Z]{2,5})\s+(?:[+\-↑↓][\d.]+%|N\/A)\s+[—–\-]\s+(.+)$/;
 
   const lines = text.split("\n");
   const out = [];
   let i = 0;
   let inPortfolio = false;
+  let currentSection = null;
   let portfolioIntro = null;
   let portfolioRows = [];
 
@@ -305,20 +307,26 @@ function briefToHtml(text, prices = {}) {
   function flushPortfolio() {
     const wasPortfolio = inPortfolio;
     inPortfolio = false;
-    const rows = portfolioRows;
+    let rows = portfolioRows;
     const intro = portfolioIntro;
     portfolioRows = [];
     portfolioIntro = null;
 
-    if (!rows.length) {
-      if (wasPortfolio) {
-        out.push(`<p style="color:#9ca3af;font-style:italic;font-size:13px;">Portfolio data unavailable today — market data pull failed. Check your brokerage app.</p>`);
-      }
-      return;
+    if (!wasPortfolio) return;
+
+    // Always render all 10 tickers — fill in any Claude missed with a fallback note
+    const foundTickers = new Set(rows.map(r => r.ticker));
+    for (const ticker of PORTFOLIO_ORDER) {
+      if (!foundTickers.has(ticker)) rows.push({ flagged: false, ticker, note: "data unavailable" });
     }
+    rows.sort((a, b) => {
+      const ai = PORTFOLIO_ORDER.indexOf(a.ticker);
+      const bi = PORTFOLIO_ORDER.indexOf(b.ticker);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
 
     if (intro) {
-      out.push(`<p class="neutral" style="margin:0 0 12px;font-size:13px;font-style:italic;">${safeHtml(intro)}</p>`);
+      out.push(`<p style="margin:0 0 12px;font-size:13px;font-style:italic;color:#E8E8E8;">${safeHtml(intro)}</p>`);
     }
     const rowsHtml = rows.map(({ flagged, ticker, note }, idx) => {
       const pd      = prices[ticker] ?? {};
@@ -345,6 +353,7 @@ function briefToHtml(text, prices = {}) {
     if (DIVIDER.test(trim) && i + 2 < lines.length && DIVIDER.test(lines[i + 2].trim())) {
       flushPortfolio();
       const header = lines[i + 1].trim();
+      currentSection = header.toUpperCase();
       out.push(`<hr class="divider"><p class="section-title">${esc(header)}</p>`);
       if (header.includes("📊") || header.toUpperCase().includes("PORTFOLIO")) inPortfolio = true;
       i += 3;
@@ -375,10 +384,9 @@ function briefToHtml(text, prices = {}) {
         i++;
         continue;
       }
-      // Blank line after rows = table is done
+      // Blank line after rows = table is done (no extra <br> — divider handles spacing)
       if (!trim && portfolioRows.length) {
         flushPortfolio();
-        out.push("<br>");
         i++;
         continue;
       }
@@ -392,14 +400,14 @@ function briefToHtml(text, prices = {}) {
       continue;
     }
 
-    // Regular text line
-    out.push(`<p>${safeHtml(trim)}</p>`);
+    // Regular text line — explicit color so email clients don't override
+    out.push(`<p style="color:#E8E8E8">${safeHtml(trim)}</p>`);
     i++;
   }
 
   flushPortfolio();
 
-  const CSS = `body{background:#0f0f0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:10px 0}.divider{border:none;border-top:1px solid #333;margin:16px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#e0e0e0}.col-ticker{width:55px;font-weight:600;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#b0b0b0}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
+  const CSS = `body{background:#0f0f0f;color:#E8E8E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;max-width:600px;margin:0 auto;padding:16px}p{margin:4px 0;color:#E8E8E8}strong,b{color:#ffffff;font-weight:700}.metric-value{color:#ffffff;font-weight:600}.section-title{font-weight:700;font-size:13px;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase;margin:20px 0 8px}.divider{border:none;border-top:1px solid #333;margin:20px 0}.positive{color:#4ade80;font-weight:600}.negative{color:#f87171;font-weight:600}.neutral{color:#9ca3af}.portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}.portfolio-table th{font-size:11px;color:#6b7280;padding:6px 8px;text-align:left;border-bottom:1px solid #2a2a2a}.portfolio-table td{padding:8px 6px;font-size:13px;border-bottom:1px solid #1a1a1a;vertical-align:top;color:#E8E8E8}.col-ticker{width:55px;font-weight:600;color:#ffffff}.col-24h{width:55px;white-space:nowrap;text-align:right}.col-50d{width:55px;white-space:nowrap;text-align:right}.col-200d{width:55px;white-space:nowrap;text-align:right}.col-note{font-size:12px;color:#C8C8C8}.row-alt{background:#141414}.flag-row{background:#1a1500}.flag-row .col-ticker{color:#ffffff;font-weight:700}`;
   const bodyHtml = out.join("").replace(/<!--[\s\S]*?-->/g, "").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>${bodyHtml}</body></html>`;
 }
@@ -590,6 +598,8 @@ HARD RULES:
 - Mike's Read: structural signals only, 4 dots max, always include BTC
 - COIN in INTEL: always show in portfolio table. Note crypto sentiment correlation when relevant. Never in DCA.
 - If any data is unavailable (ETF flows, on-chain metric, HRV, steps, sleep duration): omit that line entirely — no placeholder, no "unavailable", no "syncing". Show only confirmed data.
+- Do NOT generate an EDGE section. All tactical recommendations belong in THE CALL or MIKE'S CLOSE.
+- Keep every section to 2 sentences max, except TODAY'S CALL which may be 3-4 sentences.
 - Signed "— Mike"
 
 FORMATTING RULES — wrap all data values (readiness scores, HRV values, step counts, sleep scores, specific numbers) in <span class="metric-value"> tags so they render bright white. Examples:
@@ -600,7 +610,7 @@ Use <strong> sparingly for key tickers and status labels only (THE CALL ticker, 
 
 DCA RULES (written inside 💡 MIKE'S CLOSE as "💰 $300 today:"):
 - Write in Mike Alfred's voice — conversational, confident, institutional lens. Not a bullet list. A short narrative.
-- Eligible tickers: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD. Never COIN or AVGO.
+- Eligible tickers: BTC MSTR IREN NVDA TSLA GOOG CEG SCHD. Never COIN.
 - BTC always gets a slice unless THESIS CHECK status is CHALLENGED.
 - Never deploy into obvious overvaluation — if a position has run hard with no structural catalyst, say so and skip it.
 - STRC is Wes's cash-equivalent — only include if it's genuinely the best use of capital today.
